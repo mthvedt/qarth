@@ -1,11 +1,11 @@
-(ns qarth.oauth.scribe
+(ns qarth.impl.scribe
   "An implementation of OAuth for Scribe, with type :scribe.
   The build method requires a Scribe OAuth provider class, under the key
   :provider."
   (require [qarth.oauth :as oauth]
-           [qarth.oauth.common :as c]))
+           [qarth.oauth.lib :as lib]))
 
-(oauth/derive :scribe :any)
+(lib/derive :scribe :any)
 
 (defn scribe-verb-from-opts
   [opts]
@@ -43,7 +43,7 @@
   (let [request-token (.getRequestToken service)]
   {:type service-type
    :request-token (unscribe-token request-token)
-   :csrf-token (c/csrf-token) ; TODO needed?
+   :csrf-token (lib/csrf-token) ; TODO needed?
    :url (.getAuthorizationUrl service request-token)}))
 
 (defmethod oauth/verify-session :scribe

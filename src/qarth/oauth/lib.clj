@@ -1,11 +1,17 @@
-(ns qarth.oauth.common
+(ns qarth.oauth.lib
   "Common fns for oauth implementations.
   Designed to have a stable API, so you can use them also."
   (require [qarth.oauth :as oauth]
-           [clojure.java.io :as io]
+           qarth.oauth.support
            crypto.random
            clojure.xml)
+  (refer-clojure :exclude [derive])
   (use [slingshot.slingshot :only [try+ throw+]]))
+
+(defn derive
+  "Add to the Qarth OAuth hierarchy."
+  [child parent]
+  (swap! qarth.oauth.support/h clojure.core/derive child parent))
 
 (defn csrf-token
   "A UTF-8 CSRF token."
@@ -22,11 +28,10 @@
      (try+
        ~@code
        (catch Exception e#
-         (throw+ {:body body#} "Error parsing returned body")))))
+         (throw+ {:body body#} "Error parsing response body")))))
 
-; TODO logging?
-(defmacro make-xml-requestor
-  "Defines an implementation of zim.oauth.common/request that parses the body into XML."
+(defmacro def-request-xml
+  "Defines an implementation of qarth.oauth/request that parses the body into XML."
   [dispatch-type]
   `(defmethod oauth/request ~dispatch-type [service# session# url# params# opts#]
      (parse-body [body# (oauth/request-raw service# session# url# params# opts#)]
@@ -34,18 +39,10 @@
                    clojure.xml/parse))))
 
 ;TODO
-#_(defmacro def-json-requestor
-    "Def an implementation of zim.oauth.common/request
+#_(defmacro def-request-json
+    "Def an implementation of qarth.oauth/request
     that parses the body into JSON."
     [dispatch-val]
     `(defmethod oauth/request ~dispatch-val [session url params opts]
        (parse-body [body# (oauth/request-raw session url params opts)]
                    (json/read-json body#))))
-
-; TODO move to support or util
-(defn read-resource [name]
-  (binding [*read-eval* false] 
-    (if-let [ff (io/resource name)]
-      (with-open [rdr (java.io.PushbackReader. (io/reader ff))] 
-        (read rdr))
-      (throw+ (str "Could not read " name)))))
