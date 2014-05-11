@@ -1,10 +1,12 @@
 # Qarth
 
-Qarth is yet another OAuth library with the following features:
+Qarth is yet another OAuth library. It has the following features:
 
-* Simple facade.
+* As simple as possible to use.
+* But no simpler. No clever tricks or hacks here.
 * Simple Ring integraiton. You can use Friend, or vanilla Ring.
 * Extensible multimethods, because OAuth providers differ in details.
+You can extend them yourself also.
 
 ## Usage
 
@@ -13,7 +15,7 @@ See below for usage with Friend, Ring (no Friend), and
 
 ### A Friend app
 
-N.B.: Friend is not yet implemented!
+TODO: Not yet implemented
 
 ```clojure
 ; Create a Qarth service.
@@ -21,6 +23,8 @@ N.B.: Friend is not yet implemented!
 ```
 
 ### A Ring app (no Friend)
+
+TODO: Not yet implemented
 
 ```clojure
 ; Create an OAuth callback.
@@ -43,6 +47,8 @@ N.B.: Friend is not yet implemented!
 
 ; Make some requests!
 ```
+
+TODO put examples in separate folder
 
 All examples live in (link).
 
@@ -72,11 +78,13 @@ Currently vanilla requestors are lacking
 some features, but some libs implement clj-http-requestor
 which provides a clj-http compatible API.
 
+TODO create codox.
+
 For more, see the (link) codox.
 
 ## Implement your own
 
-TODO LINKS
+TODO doc/extending.md is not yet written.
 
 Most of Qarth is implemented using multimethods,
 which allow the use of inheritance.

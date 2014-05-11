@@ -1,0 +1,8 @@
+{:yahoo {:api-key "your-api-key"
+         :api-secret "your-api-secret"}
+ :facebook {:api-key "your-api-key"
+            :api-secret "your-api-secret"}
+ :github {:api-key "your-api-key"
+          :api-secret "your-api-secret"}
+ :google {:api-key "your-api-key"
+          :api-secret "your-api-secret"}}

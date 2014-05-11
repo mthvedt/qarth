@@ -5,7 +5,7 @@
            qarth.oauth.support
            crypto.random
            clojure.xml)
-  (refer-clojure :exclude [derive])
+  (:refer-clojure :exclude [derive])
   (use [slingshot.slingshot :only [try+ throw+]]))
 
 (defn derive
@@ -37,6 +37,11 @@
      (parse-body [body# (oauth/request-raw service# session# url# params# opts#)]
                  (-> body# (.getBytes "UTF-8") java.io.ByteArrayInputStream.
                    clojure.xml/parse))))
+
+(defn success?
+  "True if the given object represents a successful HTTP status code."
+  [code]
+  #{200 201 202 203 204 205 206 207 300 301 302 303 307} code)
 
 ;TODO
 #_(defmacro def-request-json
