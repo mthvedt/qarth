@@ -4,7 +4,9 @@
   (require [qarth.oauth.support :as s]))
 
 (defmulti build 
-  "build [{:keys [type api-key api-secret ...]}]
+  "Usage:
+  (build {:type type :api-key my-key :api-secret my-secret ...})
+
   Create an OAuth service. Accepts a hash map.
   Mandatory fields: :type, :api-key, :api-secret. Implementations may
   accept other fields also.
@@ -14,23 +16,34 @@
   s/type-first :hierarchy s/h)
 
 (defmulti request-session
-  "get-access-info [service]
-  Returns an unverified OAuth session,
-  which is a readable/writable/serializable map.
+  "Usage:
+  (request-session service)
+
+  Returns an unverified OAuth session.
 
   All unverified sessions will have the key :url,
-  which can be used to authorize sessions with verify-session."
+  which can be used to authorize sessions with verify-session.
+
+  For implementation details, see the docs."
   s/type-first :hierarchy s/h)
 
 (defmulti verify-session
-  ; TODO remove service requirement
-  "verify [oauth-service oauth-session verifier]
+  "Usage:
+  (verify-session oauth-service oauth-session verifier)
   Creates a verified OAuth session from the given oauth session
-  and verifier."
+  
+  For implementation details, see the docs."
   s/type-first :hierarchy s/h)
 
+; TODO should be varargs?
 (defmulti request-raw
-  "request [oauth-service oauth-session opts]
+  ;"Usage:
+  ;(request-raw session opts)
+  ;(request-raw service session opts)
+  ;(request-raw service-map session opts)
+  "Usage:
+  (request-raw service session opts)
+
   Executes an OAuth request in an OAuth session.
   Does not parse the output.
   
@@ -56,7 +69,13 @@
   s/type-first :hierarchy s/h)
 
 (defmulti request
-  "request [service session opts]
+  ;"Usage:
+  ;(request session opts)
+  ;(request service session opts)
+  ;(request service-map session opts)
+  "Usage:
+  (request service session opts)
+
   Executes an OAuth request in an OAuth session. Implementations
   might parse the output to a more usable form. The default implementation
   returns the body as a string."

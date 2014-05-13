@@ -2,11 +2,13 @@
 
 Qarth is yet another OAuth library. It has the following features:
 
-* As simple as possible to use.
-* But no simpler. No clever tricks or hacks here.
-* Simple Ring integraiton. You can use Friend, or vanilla Ring.
-* Extensible multimethods, because OAuth providers differ in details.
+* Designed for the most common flow--logging in a user to an app.
+* As simple as is reasonable, but no simpler. No clever tricks or hacks.
+* Implementations using multimethods, because OAuth providers differ in details.
 You can extend them yourself also.
+* Simple Ring integration. You can use Friend, or vanilla Ring.
+* Implementation for the popular Java OAuth library, Scribe. Any of the 40+
+Scribe OAuth implementations are usable through Qarth.
 
 ## Usage
 
@@ -33,19 +35,50 @@ TODO: Not yet implemented
 ; Otherwise, display some user information.
 ```
 
+TODO switch yahoo/scribe order?
+
 ### A plain old vanilla app
 ```clojure
 ; Create a Qarth service
 ; in this case, using Java Scribe to talk to Yahoo.
+(def conf {:type :scribe
+           :provider org.scribe.builder.api.YahooApi
+           :api-key "my key"
+           :api-secret "my-secret"})
 
-; Create a Qarth state using a verifier token.
-; Qarth states can be read/written using Serializable or edn
-; and can be stored in Ring sessions.
+(def service (build conf))
 
-; Create a Qarth requestor.
-; Service + state = requestor. Requestors are ephemeral.
+(def sesh (request-session service))
+(println ("Auth url: " (:url sesh)))
+; The user can get the verification token from this url (no callback)
+(print "Enter token: ") (flush)
+(def sesh (verify-session service sesh (clojure.string/trim (read-line))))
 
 ; Make some requests!
+(def user-guid (->
+				(request-raw service sesh
+				 {:url "https://social.yahooapis.com/v1/me/guid"})
+				:body
+				clojure.xml/parse
+				:content first :content first)
+
+; We could also have used the ns 'qarth.impl.yahoo,
+; which has a special implementation of 'request to save us some typing.
+(def conf {:type :yahoo
+           :api-key "my key"
+           :api-secret "my-secret"})
+
+(def service (build conf))
+
+(def sesh (request-session service))
+(println ("Auth url: " (:url sesh)))
+(print "Enter token: ") (flush)
+(def sesh (verify-session service sesh (clojure.string/trim (read-line))))
+
+(def user-guid (->
+				(request service sesh
+				 {:url "https://social.yahooapis.com/v1/me/guid"})
+                :content first :content first))
 ```
 
 TODO put examples in separate folder

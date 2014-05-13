@@ -33,10 +33,12 @@
   [(.getToken scribe-token) (.getSecret scribe-token)])
 
 (defn build-from-java
-  [service]
+  [service provider key]
   "Create a OAuth service from a Scribe OAuth service. Type will be :scribe."
   {:service service
-   :type :scribe})
+   :type :scribe
+   :api-key key
+   :provider provider})
 
 (defmethod oauth/build :scribe
   [{:keys [^String api-key ^String api-secret
@@ -46,16 +48,19 @@
                   (.apiKey api-key)
                   (.apiSecret api-secret))]
     (if-let [c (:callback service)] (.callback builder c))
-    (assoc (build-from-java (.build builder)) :type type)))
+    (assoc (build-from-java (.build builder) (.getName provider) api-key) :type type)))
 
 (defmethod oauth/request-session :scribe
-  [{service-type :type ^OAuthService service :service}]
+  [{service-type :type ^OAuthService service :service
+    provider :provider :api-key api-key}]
   (let [request-token (.getRequestToken service)]
-    {:type service-type
-     :request-token (unscribe-token request-token)
-     :csrf-token (lib/csrf-token) ; TODO needed?
-     :url (.getAuthorizationUrl service request-token)}))
+    (-> service
+      (dissoc :service)
+      (assoc :request-token (unscribe-token request-token)
+             :csrf-token (lib/csrf-token) ; TODO needed?
+             :url (.getAuthorizationUrl service request-token)))))
 
+; TODO varargs?
 (defmethod oauth/verify-session :scribe
   [{^OAuthService service :service}
    {request-token :request-token :as oauth-session} verifier-token]

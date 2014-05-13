@@ -3,11 +3,9 @@
   (require qarth.util qarth.impl.scribe clojure.string clojure.xml)
   (use qarth.oauth))
 
-(def keysf (qarth.util/read-resource "keys.edn"))
+(def conf (qarth.util/read-resource "keys.edn"))
 
-; TODO way to build multi-services
-; TODO tie service to requestor state somehow
-(def service (build (assoc (:yahoo keysf) :type :scribe
+(def service (build (assoc (:yahoo conf) :type :scribe
                            :provider org.scribe.builder.api.YahooApi)))
 
 (defn -main [& args]
