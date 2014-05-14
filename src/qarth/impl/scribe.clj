@@ -10,7 +10,7 @@
           [org.scribe.oauth OAuthService])
   (use [slingshot.slingshot :only [try+ throw+]]))
 
-(lib/derive :scribe :any)
+(lib/derive :scribe)
 
 (defn scribe-verb-from-opts
   [opts]
@@ -41,26 +41,30 @@
    :provider provider})
 
 (defmethod oauth/build :scribe
-  [{:keys [^String api-key ^String api-secret
+  [{:keys [^String api-key ^String api-secret ^String callback
            ^java.lang.Class provider type] :as service}]
   (let [builder (-> (org.scribe.builder.ServiceBuilder.)
                   (.provider provider)
                   (.apiKey api-key)
-                  (.apiSecret api-secret))]
-    (if-let [c (:callback service)] (.callback builder c))
+                  (.apiSecret api-secret)
+                  ; TODO test oob
+                  (.callback (or callback "oob")))]
     (assoc (build-from-java (.build builder) (.getName provider) api-key) :type type)))
 
-(defmethod oauth/request-session :scribe
-  [{service-type :type ^OAuthService service :service
-    provider :provider :api-key api-key}]
-  (let [request-token (.getRequestToken service)]
+(defmethod oauth/new-session :scribe
+  [{service-type :type ^OAuthService oauth-service :service
+    provider :provider api-key :api-key :as service}]
+  (let [request-token (.getRequestToken oauth-service)]
     (-> service
       (dissoc :service)
       (assoc :request-token (unscribe-token request-token)
              :csrf-token (lib/csrf-token) ; TODO needed?
-             :url (.getAuthorizationUrl service request-token)))))
+             :url (.getAuthorizationUrl oauth-service request-token)))))
 
-; TODO varargs?
+(defmethod oauth/is-active? :scribe
+  [{access-token :access-token}]
+  (if access-token true false))
+
 (defmethod oauth/verify-session :scribe
   [{^OAuthService service :service}
    {request-token :request-token :as oauth-session} verifier-token]

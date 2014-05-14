@@ -9,7 +9,7 @@
                            :provider org.scribe.builder.api.YahooApi)))
 
 (defn -main [& args]
-  (let [sesh (request-session service)
+  (let [sesh (new-session service)
         _ (println "Auth url:" (:url sesh))
         _ (print "Enter token: ")
         _ (flush)

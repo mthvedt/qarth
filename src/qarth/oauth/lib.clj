@@ -9,9 +9,9 @@
   (use [slingshot.slingshot :only [try+ throw+]]))
 
 (defn derive
-  "Add to the Qarth OAuth hierarchy."
-  [child parent]
-  (swap! qarth.oauth.support/h clojure.core/derive child parent))
+  "Add a type to the Qarth OAuth hierarchy."
+  ([type] (derive type :any))
+  ([type parent] (swap! qarth.oauth.support/h clojure.core/derive type parent)))
 
 (defn csrf-token
   "A UTF-8 CSRF token."
