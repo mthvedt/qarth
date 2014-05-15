@@ -1,16 +1,16 @@
-(ns qarth.test-ring
+(ns qarth.examples.ring
   (require [qarth.oauth :as oauth]
            qarth.util
-           ; TODO maybe auto load impl?
+           ; Require to make scribe work
            qarth.impl.scribe
            ring.util.response
+           ring.adapter.jetty
            compojure.handler)
+  (:gen-class)
   (use compojure.core))
 ; A verbose example, not using any helpers or custom middleware,
 ; to show you how you might tie Qarth OAuth into Ring in your own way.
 
-; TODO: use ring-jetty-adapter instead when we move to multiple examples.
-; any example should be run with line with-profile run such and such
 (def conf (qarth.util/read-resource "keys.edn"))
 
 (def service (oauth/build (assoc (:yahoo conf)
@@ -40,3 +40,5 @@
                     :session (:session req)))))))
 
 (def app (compojure.handler/site app))
+
+(defn -main [& args] (ring.adapter.jetty/run-jetty app {:port 3000}))

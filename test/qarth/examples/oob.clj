@@ -1,4 +1,4 @@
-(ns qarth.test
+(ns qarth.examples.oob
   (:gen-class)
   (require qarth.util qarth.impl.scribe clojure.string clojure.xml)
   (use qarth.oauth))
