@@ -1,12 +1,13 @@
 (ns qarth.test-ring
   (require [qarth.oauth :as oauth]
-           [qarth.ring :as ring]
            qarth.util
            ; TODO maybe auto load impl?
            qarth.impl.scribe
            ring.util.response
            compojure.handler)
   (use compojure.core))
+; A verbose example, not using any helpers or custom middleware,
+; to show you how you might tie Qarth OAuth into Ring in your own way.
 
 ; TODO: use ring-jetty-adapter instead when we move to multiple examples.
 ; any example should be run with line with-profile run such and such
@@ -17,20 +18,25 @@
                                  :provider org.scribe.builder.api.YahooApi
                                  :callback "http://localhost:3000/oauth-callback")))
 
-; TODO this is unweildly. easier with middleware?
-; TODO verify-session -> verify
 (defroutes app
   (GET "/" req
-       (let [sesh (ring/get-oauth-session req)]
+       (let [sesh (get-in req [:session ::oauth/session])]
          (if (oauth/is-active? sesh)
            "<html><body>Hello world!</body></html>"
-           (ring/ring-new-session req service))))
+           (let [sesh (oauth/new-session service)
+                 req (assoc-in req [:session ::oauth/session] sesh)]
+             (assoc (ring.util.response/redirect (:url sesh))
+                    :session (:session req))))))
   (GET "/oauth-callback" req
-       (let [sesh (ring/get-oauth-session req)]
-         (ring/transfer-ring-session
-           (ring/set-oauth-session req
-                                   (oauth/verify-session
-                                     service sesh (oauth/extract-token service req)))
-           (ring.util.response/redirect "/")))))
+       (let [sesh (oauth/verify service (get-in req [:session ::oauth/session])
+                                (oauth/extract-token service req))
+             req (assoc-in req [:session ::oauth/session] sesh)]
+         ; If success
+         (if (oauth/is-active? sesh)
+           (assoc (ring.util.response/redirect "/") :session (:session req))
+           (let [sesh (oauth/new-session service)
+                 req (assoc-in req [:session ::oauth/session] sesh)]
+             (assoc (ring.util.response/redirect (:url sesh))
+                    :session (:session req)))))))
 
 (def app (compojure.handler/site app))

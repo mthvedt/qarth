@@ -32,7 +32,7 @@
   Returns an inactive OAuth session.
 
   All inactive sessions will have the key :url,
-  which can be used to authorize sessions with verify-session.
+  which can be used to authorize sessions with 'verify.
 
   For implementation details, see the docs."
   s/type-first :hierarchy s/h)
@@ -70,9 +70,9 @@
 (defmethod is-active? nil [_] false)
 
 ; TODO handle scribe exceptions, if they exist
-(defmulti verify-session
+(defmulti verify
   "Multimethod. Usage:
-  (verify-session oauth-service oauth-session verifier)
+  (verify oauth-service oauth-session verifier)
   Creates an active OAuth session from the given oauth session.
   If verification fails, can return nil or optionally
   throw a {:status 401} exception.

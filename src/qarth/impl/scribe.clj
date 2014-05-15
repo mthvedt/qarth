@@ -7,8 +7,7 @@
            clojure.java.io)
   (import [java.lang String Boolean]
           [org.scribe.model OAuthRequest Token]
-          [org.scribe.oauth OAuthService])
-  (use [slingshot.slingshot :only [try+ throw+]]))
+          [org.scribe.oauth OAuthService]))
 
 (lib/derive :scribe)
 
@@ -17,7 +16,8 @@
   (if-let [m (:method opts)]
     (case (.toLowerCase ^String (name m))
       "get" org.scribe.model.Verb/GET
-      (throw+ (str "Unknown or unsupported method: " m)))
+      (throw (java.lang.IllegalArgumentException.
+               (str "Unknown or unsupported method: " m))))
     org.scribe.model.Verb/GET))
 
 (defn scribe-token
@@ -49,7 +49,8 @@
                   (.apiSecret api-secret)
                   ; TODO test oob
                   (.callback (or callback "oob")))]
-    (assoc (build-from-java (.build builder) (.getName provider) api-key) :type type)))
+    (assoc (build-from-java (.build builder) (.getName provider) api-key)
+           :type type)))
 
 (defmethod oauth/new-session :scribe
   [{service-type :type ^OAuthService oauth-service :service
@@ -65,7 +66,7 @@
   [{access-token :access-token}]
   (if access-token true false))
 
-(defmethod oauth/verify-session :scribe
+(defmethod oauth/verify :scribe
   [{^OAuthService service :service}
    {request-token :request-token :as oauth-session} verifier-token]
   (let [access-token (->> verifier-token
@@ -93,8 +94,6 @@
     (let [resp (.send req)
           status (.getCode resp)
           _ (when-not (and (.isSuccessful resp) (lib/success? status))
-              ; Don't use throw+, might expose api keys
-              ; TODO custom exception
               (throw (java.lang.RuntimeException.
                        (str "Request failed for service "
                             service-type ", status " status ", request was "

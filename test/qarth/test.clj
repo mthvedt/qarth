@@ -14,7 +14,7 @@
         _ (print "Enter token: ")
         _ (flush)
         token (clojure.string/trim (read-line))
-        sesh (verify-session service sesh token)
+        sesh (verify service sesh token)
         ; TODO :url key?
         user-guid (->
                     (request-raw service sesh
