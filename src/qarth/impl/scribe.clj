@@ -48,9 +48,9 @@
                   (.apiKey api-key)
                   (.apiSecret api-secret)
                   ; TODO test oob
-                  (.callback (or callback "oob")))]
-    (assoc (build-from-java (.build builder) (.getName provider) api-key)
-           :type type)))
+                  (.callback (or callback "oob")))
+        scribe-service (build-from-java (.build builder) (.getName provider) api-key)]
+    (merge service scribe-service)))
 
 (defmethod oauth/new-session :scribe
   [{service-type :type ^OAuthService oauth-service :service

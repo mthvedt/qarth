@@ -13,6 +13,7 @@
 
                  [org.scribe/scribe "1.3.6"]
 
+                 [com.cemerick/friend "0.2.0"]
                  [ring/ring-core "1.2.2"]
                  [ring/ring-jetty-adapter "1.2.2" :scope "test"]
                  [compojure "1.1.8" :scope "test"]

@@ -1,4 +1,5 @@
 (ns qarth.oauth
+  ; TODO rename to auth?
   "Base fns for OAuth. All OAuth implementations use these.
   You can also define your own OAuth implementations--see the docs."
   (require [qarth.oauth.support :as s]

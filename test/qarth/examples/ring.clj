@@ -1,11 +1,10 @@
 (ns qarth.examples.ring
-  (require [qarth.oauth :as oauth]
-           qarth.util
+  (require (qarth [oauth :as oauth] util)
            ; Require to make scribe work
            qarth.impl.scribe
            ring.util.response
-           ring.adapter.jetty
-           compojure.handler)
+           compojure.handler
+           ring.adapter.jetty)
   (:gen-class)
   (use compojure.core))
 ; A verbose example, not using any helpers or custom middleware,
@@ -22,7 +21,14 @@
   (GET "/" req
        (let [sesh (get-in req [:session ::oauth/session])]
          (if (oauth/is-active? sesh)
-           "<html><body>Hello world!</body></html>"
+           (let [user-guid (->
+                             (oauth/request-raw
+                               service sesh
+                               {:url "https://social.yahooapis.com/v1/me/guid"})
+                             :body
+                             clojure.xml/parse
+                             :content first :content first)]
+             (str "<html><body>Your Yahoo! id is: " user-guid "</body></html>"))
            (let [sesh (oauth/new-session service)
                  req (assoc-in req [:session ::oauth/session] sesh)]
              (assoc (ring.util.response/redirect (:url sesh))
