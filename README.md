@@ -41,27 +41,22 @@ A command-line app that uses Qarth to fetch an OAuth token.
 This shows how the core Qarth abstraction works.
 
 ```clojure
-; Create a Qarth service
+; Create an auth service
 ; in this case, using Java Scribe to talk to Yahoo.
 (def conf {:type :scribe
            :provider org.scribe.builder.api.YahooApi
            :api-key "my key"
            :api-secret "my-secret"})
-
 (def service (build conf))
 
+; Creates an unverified auth session.
 (def sesh (new-session service))
 (println ("Auth url: " (:url sesh)))
 ; The user can get the verification token from this url (no callback)
 (print "Enter token: ") (flush)
 (def sesh (verify-session service sesh (clojure.string/trim (read-line))))
+; Now we have a verified auth session, and can make requests.
 ```
-
-### A Friend app
-
-A Ring app that uses Friend to force users to log in with OAuth.
-TODO
-
 ### Make requests
 
 ```clojure
@@ -77,6 +72,12 @@ TODO
 ; A Ring handler that does the same thing.
 TODO
 ```
+
+### A Friend app
+
+A Ring app that uses Friend to force users to log in with OAuth.
+TODO
+
 
 ### Use multiple services
 

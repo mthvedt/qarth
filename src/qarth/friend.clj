@@ -1,6 +1,7 @@
 (ns qarth.friend
   "Friend workflows for Qarth."
-  (require [qarth.oauth :as oauth]
+  (require (qarth [oauth :as oauth]
+                  [ring :as qarth-ring])
            [cemerick.friend :as friend]
            (ring.util request response)
            [clojure.tools.logging :as log]))
@@ -11,6 +12,10 @@
              ::friend/redirect-on-auth? redirect-on-auth?
              :type ::friend/auth))
 
+; TODO multi-workflow, remove intermediate step
+; TODO make requests from friend
+; TODO user principal cred fn
+; TODO better flow--success-handler, failure-handler, error-handler
 (defn workflow
   "Creates a Friend workflow using a Qarth service.
 
@@ -20,57 +25,41 @@
   Optional arguments:
   oauth-url -- a URL used by the workflow that starts the oauth authentication flow,
   default is /auth/doauth. Must be relative
-  callback -- the OAuth callback in the authentication flow, default is /callback.
+  callback -- the OAuth callback in the authentication flow, default is /auth/callback.
   Must be relative
-  credential-fn -- override Friend credential fn
+  credential-fn -- override Friend credential fn (default is identity)
   redirect-on-auth? -- the Friend redirect on auth setting, default true
-  login-failure-handler -- the login failure handler,
-  default is to use the Friend login-failure-handler,
-  redirect to the Friend :login-url or /login
+  login-failure-handler -- the login failure handler. Overrides the friend settings
+  (the Friend login-failure-handler, login-url, or /login in that order)
 
   The workflow's returned credentials are the Qarth session,
-  with Friend metadata attached."
+  with Friend metadata attached.
+  Exceptions are logged and countered as auth failures."
   [{:keys [service oauth-url callback credential-fn redirect-on-auth?
            login-url login-failure-handler]}]
   (let [redirect-on-auth? (or redirect-on-auth? true)
-        callback (or callback "/callback")
+        callback (or callback "/auth/callback")
         oauth-url (or oauth-url "/auth/doauth")]
-    ; TODO what is :login-uri
-    (fn [{{sesh ::oauth/session :as ring-sesh} :session :as req}]
+    (fn [{ring-sesh :session :as req}]
       (let [path (ring.util.request/path-info req)
+            auth-config (::friend/auth-config req)
             credential-fn (or credential-fn
-                              (get-in req [::friend/auth-config :credential-fn])
-                              (throw (IllegalArgumentException.
-                                       "No credential-fn provided")))
+                              (get auth-config :credential-fn)
+                              identity)
+            success-handler (fn [{{sesh ::oauth/session} :session}]
+                              (credential-map credential-fn sesh redirect-on-auth?))
             login-failure-handler (or login-failure-handler
-                                      (get-in req [::friend/auth-config
-                                                   :login-failure-handler])
+                                      (get auth-config :login-failure-handler)
                                       #(ring.util.response/redirect
-                                         (or 
-                                           (get-in req [::friend/auth-config
-                                                        :login-url])
-                                           login-url "/login")))]
+                                         (or (get auth-config :login-url)
+                                             login-url "/login")))]
         (cond
           (= path callback)
-          (if (oauth/is-active? sesh)
-            (do
-              ; TODO logging
-              (prn "OAuth session already verified")
-              (credential-map credential-fn sesh redirect-on-auth?))
-            ; TODO make verify idempotent?
-            (let [sesh (oauth/verify service sesh (oauth/extract-token service req))]
-              (prn "Verifying OAuth session")
-              (if (oauth/is-active? sesh)
-                (do
-                  (prn "Verification successful")
-                  (credential-map credential-fn sesh redirect-on-auth?))
-                (do
-                  (prn "Failure to verify session")
-                  (login-failure-handler req)))))
+          (qarth-ring/oauth-callback-handler req service
+                                             success-handler
+                                             login-failure-handler)
 
           (= path oauth-url)
-          (let [sesh (oauth/new-session service)
-                ring-sesh (assoc ring-sesh ::oauth/session sesh)]
-            (prn "Redirecting to OAuth service")
-            (assoc (ring.util.response/redirect (:url sesh))
-                   :session ring-sesh)))))))
+          (do
+            (log/trace "Redirecting to OAuth service")
+            (qarth-ring/auth-redirect service req)))))))

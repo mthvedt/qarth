@@ -15,7 +15,6 @@
         _ (flush)
         token (clojure.string/trim (read-line))
         sesh (verify service sesh token)
-        ; TODO :url key?
         user-guid (->
                     (request-raw service sesh
                              {:url "https://social.yahooapis.com/v1/me/guid"})

@@ -13,14 +13,11 @@
 (def service (oauth/build (assoc (:yahoo conf)
                                  :type :scribe
                                  :provider org.scribe.builder.api.YahooApi
-                                 :callback "http://localhost:3000/callback")))
+                                 :callback "http://localhost:3000/auth/callback")))
 
-; TODO: qarth.oauth -> qarth.auth?
-; TODO multi callback sitaution? use service callback?
 (def workflow
   (qarth.friend/workflow {:service service}))
 
-; TODO user principal cred fn
 (defn cred-fn [auth-map]
   (prn "Getting user principal")
   (when-let [user-guid (-> (oauth/request-raw

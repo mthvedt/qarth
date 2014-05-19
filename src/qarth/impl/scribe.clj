@@ -2,9 +2,10 @@
   "An implementation of OAuth for Scribe, with type :scribe.
   The build method requires a Scribe OAuth provider class, under the key
   :provider."
-  (require [qarth.oauth :as oauth]
-           [qarth.oauth.lib :as lib]
-           clojure.java.io)
+  (require (qarth [oauth :as oauth]
+                  [lib :as lib])
+           clojure.java.io
+           [clojure.tools.logging :as log])
   (import [java.lang String Boolean]
           [org.scribe.model OAuthRequest Token]
           [org.scribe.oauth OAuthService]))
@@ -47,10 +48,19 @@
                   (.provider provider)
                   (.apiKey api-key)
                   (.apiSecret api-secret)
-                  ; TODO test oob
                   (.callback (or callback "oob")))
         scribe-service (build-from-java (.build builder) (.getName provider) api-key)]
     (merge service scribe-service)))
+
+(defmethod oauth/extract-verifier :scribe
+  [_ {[access-token _] :access-token}
+   {{their-token :oauth-token verifier :oauth_verifier} :params}]
+  (if (= their-token access-token)
+    verifier
+    (do
+      (log/infof "Given token %s didn't match our token %s"
+                 their-token access-token)
+      nil)))
 
 (defmethod oauth/new-session :scribe
   [{service-type :type ^OAuthService oauth-service :service
@@ -59,23 +69,24 @@
     (-> service
       (dissoc :service)
       (assoc :request-token (unscribe-token request-token)
-             :csrf-token (lib/csrf-token) ; TODO needed?
              :url (.getAuthorizationUrl oauth-service request-token)))))
 
-(defmethod oauth/is-active? :scribe
-  [{access-token :access-token}]
+(defmethod oauth/active? :scribe
+  [service {access-token :access-token}]
   (if access-token true false))
 
 (defmethod oauth/verify :scribe
   [{^OAuthService service :service}
    {request-token :request-token :as oauth-session} verifier-token]
-  (let [access-token (->> verifier-token
-                       (org.scribe.model.Verifier.)
-                       (.getAccessToken service (scribe-token request-token))
-                       unscribe-token)]
-    (-> oauth-session
-      (dissoc :csrf-token :url :request-token)
-      (assoc :access-token access-token))))
+  (if (oauth/active? service oauth-session)
+    oauth-session
+    (let [access-token (->> verifier-token
+                         (org.scribe.model.Verifier.)
+                         (.getAccessToken service (scribe-token request-token))
+                         unscribe-token)]
+      (-> oauth-session
+        (dissoc :url :request-token)
+        (assoc :access-token access-token)))))
 
 (defmethod oauth/request-raw :scribe
   [{^OAuthService service :service service-type :type}

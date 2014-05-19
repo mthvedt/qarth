@@ -34,8 +34,9 @@
              (assoc (ring.util.response/redirect (:url sesh))
                     :session (:session req))))))
   (GET "/oauth-callback" req
-       (let [sesh (oauth/verify service (get-in req [:session ::oauth/session])
-                                (oauth/extract-token service req))
+       (let [sesh (get-in req [:session ::oauth/session])
+             sesh (oauth/verify service sesh
+                                (oauth/extract-verifier service sesh req))
              req (assoc-in req [:session ::oauth/session] sesh)]
          ; If success
          (if (oauth/is-active? sesh)
