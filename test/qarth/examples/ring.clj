@@ -1,5 +1,10 @@
 (ns qarth.examples.ring
-  (require (qarth [oauth :as oauth] util)
+  ; TODO rename to ring-verbose or ring-basic
+  "An intentionally verbose example for using qarth with Ring.
+  Shows how Qarth works on a low level and how to tie it in."
+  (require (qarth [oauth :as oauth]
+                  [ring :as qring]
+                  util)
            ; Require to make scribe work
            qarth.impl.scribe
            ring.util.response
@@ -7,8 +12,6 @@
            ring.adapter.jetty)
   (:gen-class)
   (use compojure.core))
-; A verbose example, not using any helpers or custom middleware,
-; to show you how you might tie Qarth OAuth into Ring in your own way.
 
 (def conf (qarth.util/read-resource "keys.edn"))
 
@@ -19,7 +22,7 @@
 
 (defroutes app
   (GET "/" req
-       (let [sesh (get-in req [:session ::oauth/session])]
+       (let [sesh (qring/get req)] 
          (if (oauth/is-active? sesh)
            (let [user-guid (->
                              (oauth/request-raw
@@ -37,7 +40,7 @@
        (let [sesh (get-in req [:session ::oauth/session])
              sesh (oauth/verify service sesh
                                 (oauth/extract-verifier service sesh req))
-             req (assoc-in req [:session ::oauth/session] sesh)]
+             req (qring/set req sesh)]
          ; If success
          (if (oauth/is-active? sesh)
            (assoc (ring.util.response/redirect "/") :session (:session req))

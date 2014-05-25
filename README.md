@@ -10,21 +10,17 @@ out of the box. Qarth also integrates nicely with the security library Friend (L
 ## Rationale
 
 There are many OAuth libraries for Clojure that more or less provide a low-level
-prettification of OAuth. However, they provide
-no Clojure-flavored abstraction to hide complexity and allow for polymorphism.
-But a lot of OAuth is just bookkeeping and knowing APIs, and the APIs
+prettification of OAuth. Generally these low-level functions are the building
+blocks for a higher level library. The problem with this is that
+a lot of OAuth is just bookkeeping and knowing APIs, and the APIs
 can differ between providers and even go off-spec.
 Often, using a low-level OAuth library
-is hardly more simple than just doing the HTTP calls yourself,
-and one ends up writing an abstraction layer any to handle the common
-task of fetching and storing OAuth permissions, potentially across
-multiple providers.
+is only a small improvement over just doing the HTTP calls yourself.
+
 Qarth's goal is to fill this gap and provide a simple abstraction
 for authentication in Clojure.
 
 ## Features
-
-TODO don't put rationale and features in same preamble
 
 * Simple facade for the 99% use case of OAuth.
 * Straightforward functional design. No "easy" tricks or hacks.
@@ -36,6 +32,8 @@ Any of the 40+ OAuth services supported by Scribe are usable through Qarth.
 * Friend integration.
 
 ### A basic app
+
+TODO put examples in the best order
 
 A command-line app that uses Qarth to fetch an OAuth token.
 This shows how the core Qarth abstraction works.

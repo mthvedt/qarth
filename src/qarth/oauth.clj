@@ -1,9 +1,7 @@
 (ns qarth.oauth
   ; TODO opts for all?
-  ; TODO user principal fn
+  ; TODO user principals and fn
   ; TODO consider oauth -> auth
-  ; TODO refactor to url/opts
-  ; TODO how to remember aux data with an oauth session?
   "Base fns for auth. All auth implementations use these.
   You can also define your own auth implementations--see the docs."
   (require [qarth.oauth.support :as s]))

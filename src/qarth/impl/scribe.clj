@@ -90,17 +90,16 @@
 
 (defmethod oauth/request-raw :scribe
   [{^OAuthService service :service service-type :type}
-   {access-token :access-token} opts]
-  (let [req (OAuthRequest. (scribe-verb-from-opts opts) (:url opts))]
-    (if-let [body (:body opts)]
+   {access-token :access-token}
+   {:keys [url form-params query-params headers body follow-redirects] :as opts}]
+  (let [req (OAuthRequest. (scribe-verb-from-opts opts) url)]
+    (if body
+      ; Override body
       (.addPayload req ^String (slurp body))
-      (if-let [form-params (:form-params opts)]
-        (doseq [[k v] form-params] (.addBodyParameter req k v))))
-    (doseq [[k v] (:query-parameters opts)]
-      (.addQuerystringParameter req k v))
-    (doseq [[^String k ^String v] (:headers opts)]
-      (.addHeader req k v))
-    (.setFollowRedirects req (boolean (get opts :follow-redirects true)))
+      (doseq [[k v] form-params] (.addBodyParameter req k v)))
+    (doseq [[k v] query-params] (.addQuerystringParameter req k v))
+    (doseq [[^String k ^String v] headers] (.addHeader req k v))
+    (.setFollowRedirects req (boolean (or follow-redirects true)))
     (.signRequest service (scribe-token access-token) req)
     (let [resp (.send req)
           status (.getCode resp)
