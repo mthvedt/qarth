@@ -64,7 +64,7 @@
   (verify oauth-service oauth-session verifier)
   Creates a verified, active auth session from the given oauth session.
   If verification fails, can return nil or optionally
-  throw a {:status 401} exception.
+  throw an Exception of some kind.
   Idempotent--can be used on an already verified session.
   
   For implementation details, see the docs."
@@ -99,7 +99,7 @@
   s/type-first :hierarchy s/h)
 
 (defmulti request
-  "Multimethod with default implementation. Usage:
+  "Optional multimethod with default implementation. Usage:
   (request service session opts)
 
   Executes a request with a verified auth session. Implementations

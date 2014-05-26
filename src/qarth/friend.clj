@@ -38,38 +38,37 @@
   configured login-url or redirect to the Friend :login-uri while
   preserving the current session.
   (The default Friend :login-uri is /login. Note that Friend
-  pedantically uses URI and not URL.)
+  calls it a 'URI' even though it's always a URL.)
 
   The workflow's returned credentials are the Qarth session,
   with Friend metadata attached.
-  Exceptions are logged and countered as auth failures."
+  Exceptions are logged and treated as auth failures."
   [{:keys [service auth-url credential-fn redirect-on-auth?
-           login-url login-failure-handler]}]
-  (let [redirect-handler (qarth-ring/auth-redirect-handler service)]
-    (fn [{ring-sesh :session :as req}]
-      (let [auth-config (::friend/auth-config req)
-            auth-url (or auth-url (:auth-url auth-config))]
-        (if (= (ring.util.request/path-info req) auth-url)
-          (let [auth-config (::friend/auth-config req)
-                redirect-on-auth? (or redirect-on-auth?
-                                      (:redirect-on-auth? auth-config) true)
-                credential-fn (or credential-fn
-                                  (get auth-config :credential-fn)
-                                  identity)
-                success-handler (fn [{{sesh ::oauth/session} :session}]
-                                  (credential-map credential-fn sesh
-                                                  redirect-on-auth?))
-                login-failure-handler (or login-failure-handler
-                                          (get auth-config :login-failure-handler)
-                                          (fn [req]
-                                            (assoc
-                                              (ring.util.response/redirect
-                                                (or login-url
-                                                    (:login-url auth-config)
-                                                    ; Should be url, not uri, because
-                                                    ; all Friend uris are URLs.
-                                                    (:login-uri auth-config)))
-                                              :session (:session req))))]
-            ((qarth-ring/auth-handler service
-                                      success-handler
-                                      login-failure-handler) req)))))))
+           login-url login-failure-handler] :as params}]
+  (fn [{ring-sesh :session :as req}]
+    (let [auth-config (merge (::friend/auth-config req) params)
+          auth-url (or auth-url (:auth-url auth-config))]
+      (if (= (ring.util.request/path-info req) auth-url)
+        (let [redirect-on-auth? (or redirect-on-auth?
+                                    (:redirect-on-auth? auth-config) true)
+              credential-fn (or credential-fn
+                                (get auth-config :credential-fn)
+                                identity)
+              success-handler (fn [{{sesh ::oauth/session} :session}]
+                                (credential-map credential-fn sesh
+                                                redirect-on-auth?))
+              login-failure-handler (or login-failure-handler
+                                        (get auth-config :login-failure-handler)
+                                        (fn [req]
+                                          (assoc
+                                            (ring.util.response/redirect
+                                              (or login-url
+                                                  ; Honor our promise to look up
+                                                  ; 'the configured login-url'
+                                                  (:login-url auth-config)
+                                                  (:login-uri auth-config)))
+                                            :session (:session req))))]
+          ((qarth-ring/omni-handler {:service service
+                                     :success-handler success-handler
+                                     :failure-handler login-failure-handler})
+             req))))))

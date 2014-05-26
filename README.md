@@ -23,7 +23,7 @@ for authentication in Clojure.
 ## Features
 
 * Simple facade for the 99% use case of OAuth.
-* Straightforward functional design. No "easy" tricks or hacks.
+* Straightforward functional design. No "easy" tricks or hacks. No stupid defaults.
 * Multimethod layer, because there is no one-size-fits-all way for auth.
 * Single object (actually a map) to contain auth credentials. The map
 carries type information, so users can modify, extend, and implement new behavior.

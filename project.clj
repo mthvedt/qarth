@@ -3,7 +3,6 @@
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :warn-on-reflection true
   :profiles {:example {:resource-paths ["test-resources"]
                        :source-paths ["test"]
                        :plugins [[lein-ring "0.8.10"]]}}

@@ -1,5 +1,5 @@
-(ns qarth.examples.ring
-  "A simple Ring app, secured with Qarth."
+(ns qarth.examples.ring-vanilla
+  "An example of building a secured Ring app out of vanilla Qarth."
   (require (qarth [oauth :as oauth]
                   [ring :as qring]
                   util)
