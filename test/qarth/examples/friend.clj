@@ -20,9 +20,8 @@
 
 (defn cred-fn [auth-map]
   (prn "Getting user principal")
-  (when-let [user-guid (-> (oauth/request-raw
-                             service auth-map
-                             {:url "https://social.yahooapis.com/v1/me/guid"})
+  (when-let [user-guid (-> ((oauth/requestor service auth-map)
+                              {:url "https://social.yahooapis.com/v1/me/guid"})
                          :body
                          clojure.xml/parse
                          :content first :content first)]

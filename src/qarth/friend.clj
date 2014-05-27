@@ -8,10 +8,10 @@
 
 ; TODO figure out friend credential-fns and friend credential-maps.
 (defn credential-map
-  "Adds Friend meta-information to the auth session, and uses that
+  "Adds Friend meta-information to the auth record, and uses that
   as the credential map."
-  [credential-fn sesh redirect-on-auth?]
-  (vary-meta (credential-fn sesh) assoc
+  [credential-fn record redirect-on-auth?]
+  (vary-meta (credential-fn record) assoc
              ::friend/workflow ::qarth
              ::friend/redirect-on-auth? redirect-on-auth?
              :type ::friend/auth))
@@ -19,6 +19,7 @@
 ; TODO multi-workflow
 ; TODO make requests from friend
 ; TODO user principal cred fn
+; TODO add requestor
 (defn workflow
   "Creates a Friend workflow using a Qarth service.
 
@@ -36,11 +37,11 @@
   login-failure-handler -- the login failure handler.
   Default is to use the Friend login-failure-handler, redirect to a
   configured login-url or redirect to the Friend :login-uri while
-  preserving the current session.
+  preserving the current record.
   (The default Friend :login-uri is /login. Note that Friend
   calls it a 'URI' even though it's always a URL.)
 
-  The workflow's returned credentials are the Qarth session,
+  The workflow's returned credentials are the Qarth record,
   with Friend metadata attached.
   Exceptions are logged and treated as auth failures."
   [{:keys [service auth-url credential-fn redirect-on-auth?
@@ -54,8 +55,8 @@
               credential-fn (or credential-fn
                                 (get auth-config :credential-fn)
                                 identity)
-              success-handler (fn [{{sesh ::oauth/session} :session}]
-                                (credential-map credential-fn sesh
+              success-handler (fn [{{record ::oauth/record} :session}]
+                                (credential-map credential-fn record
                                                 redirect-on-auth?))
               login-failure-handler (or login-failure-handler
                                         (get auth-config :login-failure-handler)
