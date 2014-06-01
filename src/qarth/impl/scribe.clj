@@ -52,6 +52,14 @@
         scribe-service (build-from-java (.build builder) (.getName provider) api-key)]
     (merge service scribe-service)))
 
+(defmethod oauth/new-record :scribe
+  [{service-type :type ^OAuthService oauth-service :service
+    provider :provider api-key :api-key :as service}]
+  (let [request-token (.getRequestToken oauth-service)]
+    {:type service-type
+     :request-token (unscribe-token request-token)
+     :url (.getAuthorizationUrl oauth-service request-token)}))
+
 (defmethod oauth/extract-verifier :scribe
   [_ {[access-token _] :access-token}
    {{their-token :oauth-token verifier :oauth_verifier} :params}]
@@ -61,15 +69,6 @@
       (log/infof "Given token %s didn't match our token %s"
                  their-token access-token)
       nil)))
-
-(defmethod oauth/new-record :scribe
-  [{service-type :type ^OAuthService oauth-service :service
-    provider :provider api-key :api-key :as service}]
-  (let [request-token (.getRequestToken oauth-service)]
-    (-> service
-      (dissoc :service)
-      (assoc :request-token (unscribe-token request-token)
-             :url (.getAuthorizationUrl oauth-service request-token)))))
 
 (defmethod oauth/active? :scribe
   [service {access-token :access-token}]
@@ -88,26 +87,28 @@
         (dissoc :url :request-token)
         (assoc :access-token access-token)))))
 
-; TODO yahoo oauth_problem
 (defmethod oauth/requestor :scribe
   [{^OAuthService service :service service-type :type} {access-token :access-token}]
-  (fn [{:keys [url form-params query-params headers body follow-redirects] :as opts}]
-    (let [req (OAuthRequest. (scribe-verb-from-opts opts) url)]
-      (if body
-        ; Override body
-        (.addPayload req ^String (slurp body))
-        (doseq [[k v] form-params] (.addBodyParameter req k v)))
-      (doseq [[k v] query-params] (.addQuerystringParameter req k v))
-      (doseq [[^String k ^String v] headers] (.addHeader req k v))
-      (.setFollowRedirects req (boolean (or follow-redirects true)))
-      (.signRequest service (scribe-token access-token) req)
-      (let [resp (.send req)
-            status (.getCode resp)
-            _ (when-not (and (.isSuccessful resp) (lib/success? status))
-                (throw (java.lang.RuntimeException.
-                         (str "Request failed for service "
-                              service-type ", status " status ", request was "
-                              (pr-str opts)))))]
-        {:status status
-         :body (.getStream resp)
-         :headers (into {} (.getHeaders resp))}))))
+  (vary-meta
+    (fn [{:keys [url form-params query-params headers body follow-redirects]
+          :as opts}]
+      (let [req (OAuthRequest. (scribe-verb-from-opts opts) url)]
+        (if body
+          ; Override body
+          (.addPayload req ^String (slurp body))
+          (doseq [[k v] form-params] (.addBodyParameter req k v)))
+        (doseq [[k v] query-params] (.addQuerystringParameter req k v))
+        (doseq [[^String k ^String v] headers] (.addHeader req k v))
+        (.setFollowRedirects req (boolean (or follow-redirects true)))
+        (.signRequest service (scribe-token access-token) req)
+        (let [resp (.send req)
+              status (.getCode resp)
+              _ (when-not (and (.isSuccessful resp) (lib/success? status))
+                  (throw (java.lang.RuntimeException.
+                           (str "Request failed for service "
+                                service-type ", status " status ", request was "
+                                (pr-str opts)))))]
+          {:status status
+           :body (.getStream resp)
+           :headers (into {} (.getHeaders resp))})))
+    assoc :type service-type))

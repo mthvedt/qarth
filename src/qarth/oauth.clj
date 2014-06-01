@@ -99,3 +99,11 @@
   If an exceptional status code happens, throws an Exception instead.
   Other implementations might support more opts and return more stuff."
   s/type-first :hierarchy s/h)
+
+(defmulti id
+  "Multimethod. Optional. Usage:
+  (id requestor)
+
+  Gets a user ID from the requestor. The ID is guaranteed to be unique
+  and unchanging per service."
+  type :hierarchy s/h)

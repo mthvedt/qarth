@@ -71,6 +71,12 @@
       (catch Exception e
         (exception-handler (set req nil) e)))))
 
+; TODO work out format
+; get-record
+; get-requestor
+; with-service
+; but first, make sure the current thing works...
+
 (defn omni-handler
   "Returns a Ring handler that handles both new auth records and callbacks.
   Your one-stop shop for auth. Install this at some desired route,
@@ -81,20 +87,22 @@
   success-handler -- Called when an auth record is successfully verified
   (or is already verified).
   failure-handler -- Called when an auth record exists, is unverified,
-  but could not be verified.
-  Will log the failure and/or exception and nuke the auth record beforehand.
-  Can be overridden by an exception-handler.
+  but could not be verified. Logs the exception and nukes the auth record
+  before calling.
 
   Optional params:
   new-record-handler -- Called when this handler detects no auth record,
   and a new one is created. Default is to redirect to the auth :url.
-  exception-handler -- a function (f request exception). Overrides failure-handler."
+  exception-handler -- a function (f request exception). Overrides failure-handler,
+  logging, and auth record cleanup..."
   [{:keys [service success-handler failure-handler
            new-record-handler exception-handler]
     :as config}]
   (let [new-record-handler (or new-record-handler
                                (new-record-redirect-handler service))
         exception-handler (or exception-handler
+                              ; TODO should exception handler also nuke the session?
+                              ; no.
                               (fn [req e]
                                 (log/info e "Exception trying to verify record")
                                 (failure-handler req)))

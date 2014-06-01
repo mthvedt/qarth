@@ -1,7 +1,7 @@
 (ns qarth.examples.friend
   (require (qarth [oauth :as oauth]
                   util friend)
-           qarth.impl.scribe
+           qarth.impl.yahoo
            cemerick.friend
            compojure.handler
            ring.util.response
@@ -11,33 +11,24 @@
 (def conf (qarth.util/read-resource "keys.edn"))
 
 (def service (oauth/build (assoc (:yahoo conf)
-                                 :type :scribe
-                                 :provider org.scribe.builder.api.YahooApi
+                                 :type :yahoo.com
                                  :callback "http://localhost:3000/login")))
 
 (def workflow
   (qarth.friend/workflow {:service service}))
 
-(defn cred-fn [auth-map]
-  (prn "Getting user principal")
-  (when-let [user-guid (-> ((oauth/requestor service auth-map)
-                              {:url "https://social.yahooapis.com/v1/me/guid"})
-                         :body
-                         clojure.xml/parse
-                         :content first :content first)]
-    (prn "Got user principal " user-guid)
-    {:identity user-guid :roles [::user]}))
-
 (defroutes app
-  (GET "/" _
+  (GET "/" req
        (cemerick.friend/authorize
          #{::user}
-         (str "<html><body>Hello friend!</body></html>"))))
+         (do
+           (prn (qarth.friend/auth-record req))
+           (str "<html><body>Hello friend!</body></html>")))))
 
 (def app
   (-> app
-    (cemerick.friend/authenticate {:workflows [workflow] :credential-fn cred-fn
-                                   :auth-url "/login"})
+    (cemerick.friend/authenticate {:workflows [workflow] :auth-url "/login"
+                                   :credential-fn #(assoc % :roles [::user])})
     compojure.handler/site))
 
 (defn -main [& args] (ring.adapter.jetty/run-jetty app {:port 3000}))
