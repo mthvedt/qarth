@@ -16,7 +16,6 @@
                ::friend/redirect-on-auth? redirect-on-auth?
                :type ::friend/auth)))
 
-; TODO add and doc credential map, credential fn, but in a separate .md
 (defn auth-record
   "Looks for a qarth auth record in the Friend authentications.
   Returns it, or nil if not found."
@@ -28,11 +27,12 @@
     first
     ::oauth/record))
 
-; TODO multi-workflow
-; TODO make requests from friend
-; TODO user principal cred fn
-; TODO how to do requestor
-; TODO type metadata for requestors
+(defn requestor
+  "Get an auth requestor from a Friend-authenticated request and a service."
+  [req service]
+  (if-let [r (auth-record req)]
+    (oauth/requestor service r)))
+
 (defn workflow
   "Creates a Friend workflow using a Qarth service.
 
@@ -45,26 +45,20 @@
 
   Optional arguments:
   login-url or login-uri -- a URL to redirect to if a user is not logged in.
-  credential-fn -- override the Friend credential fn
+  (The default Friend :login-uri is /login.)
+  key -- for multi-services. Can also be passed as a query param, \"service\".
+  credential-fn -- override the Friend credential fn.
+  The default Friend credential-fn, for some reason, returns nil.
+  The credential map is of the form
+  {::qarth.oauth/record auth-record, :identity ::qarth.oauth/anonymous}.
   redirect-on-auth? -- the Friend redirect on auth setting, default true
   login-failure-handler -- the login failure handler.
   Default is to use the Friend login-failure-handler, redirect to a
   configured login-url or redirect to the Friend :login-uri while
   preserving the current record.
-  (The default Friend :login-uri is /login. Note that Friend
-  calls it a 'URI' even though it's always a URL.)
 
-  Because of the architecture of Friend, this workflow requires
-  that the qarth.oauth/principal method be supported.
-
-  Exceptions are logged and treated as auth failures.
-
-  For experts--
-  The workflow's returned credentials are of the form
-  {::qarth.oauth/record auth-record ::qarth.oauth/type record-type
-  ::qarth.oauth/principal principal :identity [record-type principal]}."
-  ; TODO consider docs
-  [{:keys [service auth-url credential-fn redirect-on-auth?
+  Exceptions are logged and treated as auth failures."
+  [{:keys [service key auth-url credential-fn redirect-on-auth?
            login-url login-uri login-failure-handler] :as params}]
   (fn [{ring-sesh :session :as req}]
     (let [auth-config (merge (::friend/auth-config req) params)
@@ -74,20 +68,14 @@
                                     (:redirect-on-auth? auth-config) true)
               credential-fn (or credential-fn (:credential-fn auth-config))
               success-handler (fn [{{record ::oauth/record} :session}]
-                                (log/debug "Fetching user principal...")
-                                (let [p (->> record
-                                          (oauth/requestor service)
-                                          oauth/id)
-                                      type (:type record)]
-                                  ; TODO principal map
-                                  ; TODO make principals optional
-                                  ; otherwise use static id (::qarth.oauth/anonymous?)
-                                  (credential-map credential-fn
-                                                  {::oauth/record record
-                                                   ::oauth/id p
-                                                   :identity [type p]
-                                                   ::oauth/type (:type record)}
-                                                  redirect-on-auth?)))
+                                (credential-map credential-fn
+                                                {::oauth/record record
+                                                 :identity ::qarth.oauth/anonymous}
+                                                redirect-on-auth?))
+              key (or key (:key auth-config))
+              req (if key
+                    (assoc-in req [:query-params "service"] key)
+                    req)
               login-failure-handler (or login-failure-handler
                                         (get auth-config :login-failure-handler)
                                         (fn [req]
@@ -100,7 +88,6 @@
                                                   (:login-url auth-config)
                                                   (:login-uri auth-config)))
                                             :session (:session req))))]
-          ; TODO add credential stuff to omnihandler?
           ((qarth-ring/omni-handler {:service service
                                      :success-handler success-handler
                                      :failure-handler login-failure-handler})

@@ -1,7 +1,5 @@
 (ns qarth.oauth
-  ; TODO user principals and fn
-  ; TODO consider oauth -> auth
-  "Base fns for auth. All auth implementations use these.
+  "Base fns for OAuth and OAuth-style interactive auth services.
   You can also define your own auth implementations--see the docs."
   (require [qarth.oauth.support :as s]))
 
@@ -25,18 +23,35 @@
   Be careful if about writing or serializing them."
   s/type-first :hierarchy s/h)
 
+(defmethod build :multi
+  [{services :services opts :opts :as spec}]
+  {:type :multi
+   :services
+   (into {}
+         (for [[k v] services]
+           [k (build (merge opts {:type k} v))]))})
+
 (defmulti new-record
   "Multimethod. Usage:
   (new-record service)
+  (new-record multi-service key)
 
   Returns an inactive OAuth record. An OAuth record keeps tracks of
   request tokens, verifiers, access tokens, CSRF, &c.
 
-  All inactive records will have the key :url,
-  which can be used to authorize records with 'verify-record.
+  Returns a map with:
+  :type -- required, the type of the record
+  :url -- optional, a callback URL for interactive auth
+  other various implementation-specific keys
 
   For implementation details, see the docs."
   s/type-first :hierarchy s/h)
+
+(defmethod new-record :multi
+  ([service] (throw (IllegalArgumentException. "Missing type for multi-service")))
+  ([service key]
+   (let [record (new-record (get-in service [:services key]))]
+   {:type :multi :key key :record record :url (:url record)})))
 
 (defmulti extract-verifier
   "Multimethod. Usage:
@@ -49,6 +64,10 @@
   For implementation details, see the docs."
   s/type-first :hierarchy s/h :default :any)
 
+(defmethod extract-verifier :multi
+  [service {key :key record :record} ring-request]
+  (extract-verifier (get-in service [:services key]) record ring-request))
+
 (defmulti active?
   "Multimethod. Usage:
   (active? service record)
@@ -58,6 +77,10 @@
   s/type-first :hierarchy s/h)
 
 (defmethod active? nil [_ _] false)
+
+(defmethod active? :multi
+  [service {key :key record :record}]
+  (active? (get-in service [:services key]) record))
 
 (defmulti verify
   "Multimethod. Usage:
@@ -70,6 +93,11 @@
   
   For implementation details, see the docs."
   s/type-first :hierarchy s/h)
+
+(defmethod verify :multi
+  [service {key :key subrecord :record :as record} verifier]
+  (assoc record :record
+         (verify (get-in service [:services key]) subrecord verifier)))
 
 ; TODO support exception toggling
 (defmulti requestor
@@ -99,6 +127,10 @@
   If an exceptional status code happens, throws an Exception instead.
   Other implementations might support more opts and return more stuff."
   s/type-first :hierarchy s/h)
+
+(defmethod requestor :multi
+  [service {key :key record :record}]
+  (requestor (get-in service [:services key]) record))
 
 (defmulti id
   "Multimethod. Optional. Usage:

@@ -10,7 +10,7 @@
 
 (def conf (qarth.util/read-resource "keys.edn"))
 
-(def service (oauth/build (assoc (:yahoo conf)
+(def service (oauth/build (assoc (:yahoo.com conf)
                                  :type :yahoo.com
                                  :callback "http://localhost:3000/login")))
 
@@ -22,6 +22,7 @@
        (cemerick.friend/authorize
          #{::user}
          (do
+           ; TODO some auth stuff
            (prn (qarth.friend/auth-record req))
            (str "<html><body>Hello friend!</body></html>")))))
 

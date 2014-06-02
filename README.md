@@ -2,10 +2,22 @@
 
 A simple interface to authentication.
 
-Qarth began life as a way to satisfy the 99% use case of OAuth;
+Qarth began life as a way to satisfy the 99% use case of OAuth:
 to fetch, track, and use permissions from multiple providers.
 Through its Scribe (LINK) implementation, Qarth supports 40+ OAuth services
 out of the box. Qarth also integrates nicely with the security library Friend (LINK).
+
+## Features so far
+
+* Simple multimethod facade to OAuth. Extend or implement behavior with a few lines
+of code.
+* Ability to use multiple OAuth services with little hassle.
+* Friend integration.
+
+Coming soon:
+
+* A 'strategy' based Ring implementation, similar to Ring OmniAuth.
+* Support for all kinds of auth, not just OAuth, through the above.
 
 ## Rationale
 
@@ -92,11 +104,16 @@ can use Facebook and Yahoo! you might write:
 TODO
 ```
 
-In fact this is basically what is done in qarth/principals.clj (TODO NOT YET WRITTEN).
+### Details
 
-### Codox and other details
+TODO generate API docs.
 
-See doc/extending.md (TODO NOT YET WRITTEN) for how to extend.
+[API docs](http://mthvedt.github.io/qarth/codox)
+
+See [doc/extending.md](https://github.com/mthvedt/qarth/blob/master/doc/extending.md)
+for information on extending Qarth.
+Or see the implementations in
+https://github.com/mthvedt/qarth/tree/master/src/qarth/impl.
 
 ## Implementations included
 
@@ -108,11 +125,12 @@ You can add your own behavior also, using the built-in multimethods.
 Also, more specific implementations for Facebook, Github, Yahoo and Google
 are provided.
 
-For more, see the (link) codox.
+For more, see the codox. TODO CODOX
 
 ## Logging
 
-Qarth uses clojure.tools.logging for logging. TODO LINK
+Qarth uses [clojure.tools.logging](https://github.com/clojure/tools.logging)
+for logging.
 
 ## License
 
