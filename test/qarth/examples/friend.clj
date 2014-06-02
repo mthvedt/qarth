@@ -14,8 +14,7 @@
                                  :type :yahoo.com
                                  :callback "http://localhost:3000/login")))
 
-(def workflow
-  (qarth.friend/workflow {:service service}))
+(def workflow (qarth.friend/workflow {:service service}))
 
 (defroutes app
   (GET "/" req
