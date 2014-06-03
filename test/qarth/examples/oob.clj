@@ -8,6 +8,7 @@
 (def service (build (assoc (:yahoo conf) :type :scribe
                            :provider org.scribe.builder.api.YahooApi)))
 
+; TODO clean up and fix
 (defn -main [& args]
   (let [sesh (new-session service)
         _ (println "Auth url:" (:url sesh))

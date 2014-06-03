@@ -24,12 +24,12 @@
   s/type-first :hierarchy s/h)
 
 (defmethod build :multi
-  [{services :services opts :opts :as spec}]
+  [{services :services options :options :as spec}]
   {:type :multi
    :services
    (into {}
          (for [[k v] services]
-           [k (build (merge opts {:type k} v))]))})
+           [k (build (merge options {:type k} v))]))})
 
 (defmulti new-record
   "Multimethod. Usage:

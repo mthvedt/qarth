@@ -20,10 +20,10 @@
   (GET "/" req
        (cemerick.friend/authorize
          #{::user}
-         (do
-           ; TODO some auth stuff
-           (prn (qarth.friend/auth-record req))
-           (str "<html><body>Hello friend!</body></html>")))))
+         (let [id (-> req (qarth.friend/requestor service) oauth/id)]
+           (str "<html><body>Hello friend! Your unique user ID is "
+                id
+                "</body></html>")))))
 
 (def app
   (-> app

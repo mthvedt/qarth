@@ -1,11 +1,14 @@
 # Qarth
 
+TODO lein/maven coords
+
 A simple interface to authentication.
 
 Qarth began life as a way to satisfy the 99% use case of OAuth:
 to fetch, track, and use permissions from multiple providers.
-Through its Scribe (LINK) implementation, Qarth supports 40+ OAuth services
-out of the box. Qarth also integrates nicely with the security library Friend (LINK).
+Through its [Scribe](https://github.com/fernandezpablo85/scribe-java) implementation, Qarth supports 40+ OAuth services
+out of the box. Qarth also integrates nicely with the security library
+[Friend](https://github.com/cemerick/friend).
 
 ## Features so far
 
@@ -20,7 +23,7 @@ Any of the 40+ OAuth services supported by Scribe are usable through Qarth.
 
 Coming soon:
 
-* A 'strategy' based Ring implementation, similar to Ring OmniAuth.
+* A 'strategy' based Ring implementation, similar to Ruby OmniAuth.
 * Support for all kinds of auth, not just OAuth, through the above.
 
 ## Rationale
@@ -36,66 +39,129 @@ is only a small improvement over just doing the HTTP calls yourself.
 Qarth's goal is to fill this gap and provide a simple abstraction
 for authentication in Clojure.
 
-### A basic app
+### A basic Ring app
 
-A command-line app that uses Qarth to fetch an OAuth token.
-This shows how the core Qarth abstraction works.
+TODO
+
+### A Friend app
 
 ```clojure
 ; Create an auth service
-; in this case, using Java Scribe to talk to Yahoo.
+(def conf {:type :yahoo.com
+           :callback "http://localhost:3000"
+           :api-key "my-key"
+           :api-secret "my-secret"})
+; An auth service contains all your super-secret information, like API passwords.
+; Qarth separates auth services, which contain your darkest secrets,
+; from auth records, which are kept in Ring sessions and contain user information.
+(def service (qarth.oauth/build conf))
+
+(def workflow (qarth.friend/workflow {:service service}))
+
+; A requestor uses verified OAuth credentials to make http requests.
+; oauth/id is a method on requestors.
+; Here we grab the requestor from our verified OAuth credentials
+; and request a user ID.
+(defroutes app
+  (GET "/" req
+       (cemerick.friend/authorize
+         #{::user}
+         (let [id (-> req (qarth.friend/requestor service) oauth/id)]
+           (str "<html><body>Hello friend! Your unique user ID is "
+                id
+                "</body></html>")))))
+
+; Using the workflow is simple. To kick off OAuth,
+; just redirect users to the :auth-url and Qarth handles the rest.
+; Here the :auth-url is "/login", the default Friend redirect.
+(def app
+  (-> app
+    (cemerick.friend/authenticate {:workflows [workflow] :auth-url "/login"
+                                   :credential-fn #(assoc % :roles [::user])})
+    compojure.handler/site))
+```
+
+### A command-line app
+
+Qarth's basic facade is very simple. Here's how to use it:
+
+```clojure
+; Assume service is an OAuth service with no callback
+(def sesh (new-session (assoc service))
+(println ("Auth url: " (:url sesh)))
+; Compliant OAuth implementations will show the user a verification token.
+(print "Enter token: ") (flush)
+(def sesh (verify-session service sesh (clojure.string/trim (read-line))))
+(println "Your unique user ID is " (->> sesh (oauth/requestor service) oauth/id))
+```
+
+With only a few steps, you can make your own auth systems
+if you don't like the provided Friend implementation.
+See the oauth.clj and ring.clj namespaces for more information.
+TODO generate codox for these namespaces.
+
+### Make arbitrary requests
+
+```clojure
+; A 'requestor', in addition to being an object with multimethods,
+; is a vanilla fn that can be used to make arbitrary HTTP requests.
+; TODO don't use yahoo!, too complicated.
+(def requestor (requestor service sesh))
+(def user-guid (-> (requestor {:url "https://social.yahooapis.com/v1/me/guid"})
+				:body
+				clojure.xml/parse
+				:content first :content first))
+(println "Your user GUID is " user-guid)
+; Requestors support many (or all! depending on implementation)
+; of the options that :clj-http supports.
+; TODO write a more elaborate example.
+```
+
+### Using multiple services
+
+```clojure
+; You can define a service containing several sub-services.
+(def conf {:type :multi
+           :services {:yahoo.com {:api-key "my-key"
+                                  :api-secret "my-secret"}
+                      :github.com {:api-key "my-key"
+                                   :api-secret "my-secret"}}
+           ; Options applied to all services
+           :options {:callback "http://localhost:3000/auth"}})
+(def service (oauth/build conf))
+
+; Works the same as an ordinary service, except for one thing...
+; to open a new session takes an extra argument.
+(def sesh (new-session service :yahoo.com))
+
+; You can use Friend by adding an extra ?service= query param.
+; A basic login page might look like this:
+(GET "/login" _
+     (str "<html><head/><body>"
+          "<p><a href=\"/auth?service=yahoo.com\">Login with Yahoo!</p>"
+          "<p><a href=\"/auth?service=github.com\">Login with Github</p>"
+          "</body></html>"))
+```
+
+### Using Scribe
+
+```clojure
+; Any Scribe implementation can be used here.
 (def conf {:type :scribe
            :provider org.scribe.builder.api.YahooApi
            :api-key "my-key"
            :api-secret "my-secret"})
 (def service (build conf))
-
-; Qarth comes with some specific implementations out of the box, also.
-(def conf {:type :yahoo.com
-           :api-key "my-key"
-           :api-secret "my-secret"})
-(def service (build conf))
-
-; Creates an unverified auth session.
-(def sesh (new-session service))
-(println ("Auth url: " (:url sesh)))
-; The user can get the verification token from this url (no callback)
-(print "Enter token: ") (flush)
-(def sesh (verify-session service sesh (clojure.string/trim (read-line))))
-; Now we have a verified auth session, and can make requests.
 ```
 
-### Make requests
+You can also implement your own using Scribe. For example, see
+https://github.com/mthvedt/qarth/blob/master/src/qarth/impl/yahoo.clj.
 
-```clojure
-; For a Qarth sesison called 'sesh', this is how you make a request.
-(def user-guid (->
-				(request service sesh
-				 {:url "https://social.yahooapis.com/v1/me/guid"})
-				:body
-				clojure.xml/parse
-				:content first :content first)
-(println "Your Yahoo! user GUID is " user-guid)
-
-; Qarth comes with some built-in multimethods
-; for Facebook, Yahoo!, Github, and Google.
-(def user-guid (oauth/id sesh))
-(println "Your Yahoo! user GUID is " user-guid)
-```
-
-### A Friend app
-
-A Ring app that uses Friend to force users to log in with OAuth.
-
-(def workflow (qarth.friend/workflow {:service service}))
-
-TODO a more elaborate example
-
-### Use multiple services
+### Roll your own multimethods
 
 TODO
 
-### Roll your own multimethods
+### Implement your own Qarth service
 
 TODO
 
@@ -110,7 +176,7 @@ TODO generate API docs.
 [API docs](http://mthvedt.github.io/qarth/codox)
 
 See [doc/extending.md](https://github.com/mthvedt/qarth/blob/master/doc/extending.md)
-for information on extending Qarth.
+for information on extending Qarth. TODO write this.
 Or see the implementations in
 https://github.com/mthvedt/qarth/tree/master/src/qarth/impl.
 
