@@ -5,14 +5,7 @@
            qarth.impl.scribe
            clojure.xml))
 
-(lib/derive :yahoo.com :scribe)
-
-(defmethod oauth/build :yahoo.com
-  [spec]
-  (-> spec
-    (assoc :type :scribe :provider org.scribe.builder.api.YahooApi)
-    oauth/build
-    (assoc :type :yahoo.com)))
+(qarth.impl.scribe/extend-scribe :yahoo.com org.scribe.builder.api.YahooApi)
 
 (defmethod oauth/extract-verifier :yahoo.com
   [service record {{problem :oauth_problem} :params :as req}]

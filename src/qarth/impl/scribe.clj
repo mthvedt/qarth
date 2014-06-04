@@ -52,6 +52,19 @@
         scribe-service (build-from-java (.build builder) (.getName provider) api-key)]
     (merge service scribe-service)))
 
+(defmacro extend-scribe
+  "Derives an extension of the Scribe implementation,
+  that builds a Scribe service with the provided type and api."
+  [type api]
+  `(do
+     (lib/derive ~type :scribe)
+     (defmethod oauth/build ~type
+       [spec#]
+       (-> spec#
+         (assoc :type :scribe :provider ~api)
+         oauth/build
+         (assoc :type ~type)))))
+
 (defmethod oauth/new-record :scribe
   [{service-type :type ^OAuthService oauth-service :service
     provider :provider api-key :api-key :as service}]
