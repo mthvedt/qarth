@@ -70,12 +70,8 @@
     (try
       (log/trace "Verifying auth record...")
       (let [req (verify-request service req)]
-        (if (oauth/active? service (get req))
-          (do
-            (log/trace "Verified auth record")
-            (success-handler req))
-          (throw (IllegalStateException.
-                   "Verification was successful but record not active"))))
+        (log/trace "Verified auth record")
+        (success-handler req))
       (catch Exception e
         (exception-handler req e)))))
 

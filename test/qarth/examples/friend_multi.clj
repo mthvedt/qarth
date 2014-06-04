@@ -12,7 +12,6 @@
 (def conf (qarth.util/read-resource "keys.edn"))
 
 (def service (oauth/build {:type :multi
-                           ; TODO
                            :services (dissoc conf
                                              :facebook.com :github.com :google.com)
                            :options {:callback "http://localhost:3000/auth"}}))

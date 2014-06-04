@@ -3,14 +3,15 @@
   The build method requires a Scribe OAuth provider class, under the key
   :provider."
   (require (qarth [oauth :as oauth]
-                  [lib :as lib])
+                  [lib :as lib]
+                  [util :as util])
            clojure.java.io
            [clojure.tools.logging :as log])
   (import [java.lang String Boolean]
           [org.scribe.model OAuthRequest Token]
           [org.scribe.oauth OAuthService]))
 
-(lib/derive :scribe)
+(lib/derive :scribe :oauth)
 
 (defn scribe-verb-from-opts
   [opts]
@@ -43,12 +44,13 @@
 
 (defmethod oauth/build :scribe
   [{:keys [^String api-key ^String api-secret ^String callback
-           ^java.lang.Class provider type] :as service}]
+           ^String scope ^java.lang.Class provider type] :as service}]
   (let [builder (-> (org.scribe.builder.ServiceBuilder.)
                   (.provider provider)
                   (.apiKey api-key)
                   (.apiSecret api-secret)
                   (.callback (or callback "oob")))
+        _ (if scope (.scope builder scope))
         scribe-service (build-from-java (.build builder) (.getName provider) api-key)]
     (merge service scribe-service)))
 
@@ -73,6 +75,7 @@
      :request-token (unscribe-token request-token)
      :url (.getAuthorizationUrl oauth-service request-token)}))
 
+; TODO
 (defmethod oauth/extract-verifier :scribe
   [_ {[access-token _] :access-token}
    {{their-token :oauth-token verifier :oauth_verifier} :params}]
@@ -83,14 +86,10 @@
                  their-token access-token)
       nil)))
 
-(defmethod oauth/active? :scribe
-  [service {access-token :access-token}]
-  (if access-token true false))
-
 (defmethod oauth/verify :scribe
   [{^OAuthService service :service}
-   {request-token :request-token :as record} verifier-token]
-  (if (oauth/active? service record)
+   {access-token :access-token request-token :request-token :as record} verifier-token]
+  (if access-token
     record
     (let [access-token (->> verifier-token
                          (org.scribe.model.Verifier.)
@@ -99,6 +98,8 @@
       (-> record
         (dissoc :url :request-token)
         (assoc :access-token access-token)))))
+
+; TODO impl extract-verifier
 
 (defmethod oauth/requestor :scribe
   [{^OAuthService service :service service-type :type} {access-token :access-token}]
@@ -116,7 +117,7 @@
         (.signRequest service (scribe-token access-token) req)
         (let [resp (.send req)
               status (.getCode resp)
-              _ (when-not (and (.isSuccessful resp) (lib/success? status))
+              _ (when-not (and (.isSuccessful resp) (util/success? status))
                   (throw (java.lang.RuntimeException.
                            (str "Request failed for service "
                                 service-type ", status " status ", request was "

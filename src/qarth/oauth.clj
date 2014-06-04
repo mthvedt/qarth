@@ -1,7 +1,14 @@
 (ns qarth.oauth
   "Base fns for OAuth and OAuth-style interactive auth services.
   You can also define your own auth implementations--see the docs."
-  (require [qarth.oauth.support :as s]))
+  ; TODO eliminate build?
+  ; pros:
+  ; - dynamic callback URL
+  ; - simpler API
+  ; cons:
+  ; - none really
+  ; TODO revise README.md language
+  (require [qarth.lib :as l]))
 
 (defmulti build 
   "Multimethod. Usage:
@@ -21,7 +28,7 @@
   
   Auth services contain secret information, like api secret keys.
   Be careful if about writing or serializing them."
-  s/type-first :hierarchy s/h)
+  l/type-first :hierarchy l/h)
 
 (defmethod build :multi
   [{services :services options :options :as spec}]
@@ -45,7 +52,7 @@
   other various implementation-specific keys
 
   For implementation details, see the docs."
-  s/type-first :hierarchy s/h)
+  l/type-first :hierarchy l/h)
 
 (defmethod new-record :multi
   ([service] (throw (IllegalArgumentException. "Missing type for multi-service")))
@@ -62,25 +69,11 @@
   (perhaps due to a CSRF attack), it should return nil.
 
   For implementation details, see the docs."
-  s/type-first :hierarchy s/h :default :any)
+  l/type-first :hierarchy l/h :default :any)
 
 (defmethod extract-verifier :multi
   [service {key :key record :record} ring-request]
   (extract-verifier (get-in service [:services key]) record ring-request))
-
-(defmulti active?
-  "Multimethod. Usage:
-  (active? service record)
-  
-  Ture if the current auth record is verified and active.
-  (Returns false if it is nil.)"
-  s/type-first :hierarchy s/h)
-
-(defmethod active? nil [_ _] false)
-
-(defmethod active? :multi
-  [service {key :key record :record}]
-  (active? (get-in service [:services key]) record))
 
 (defmulti verify
   "Multimethod. Usage:
@@ -92,7 +85,7 @@
   Idempotent--can be used on an already verified record.
   
   For implementation details, see the docs."
-  s/type-first :hierarchy s/h)
+  l/type-first :hierarchy l/h)
 
 (defmethod verify :multi
   [service {key :key subrecord :record :as record} verifier]
@@ -126,7 +119,7 @@
 
   If an exceptional status code happens, throws an Exception instead.
   Other implementations might support more opts and return more stuff."
-  s/type-first :hierarchy s/h)
+  l/type-first :hierarchy l/h)
 
 (defmethod requestor :multi
   [service {key :key record :record}]
@@ -138,4 +131,4 @@
 
   Gets a user ID from the requestor. The ID is guaranteed to be unique
   and unchanging per service."
-  type :hierarchy s/h)
+  type :hierarchy l/h)

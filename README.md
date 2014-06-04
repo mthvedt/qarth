@@ -2,13 +2,29 @@
 
 TODO lein/maven coords
 
-A simple interface to authentication.
+A library for using OAuth without setting your hair on fire.
 
-Qarth began life as a way to satisfy the 99% use case of OAuth:
-to fetch, track, and use permissions from multiple providers.
-Through its [Scribe](https://github.com/fernandezpablo85/scribe-java) implementation, Qarth supports 40+ OAuth services
-out of the box. Qarth also integrates nicely with the security library
-[Friend](https://github.com/cemerick/friend).
+## Rationale
+
+There are several good OAuth libraries for Clojure,
+but the OAuth spec is both simple and incomplete, such that
+that low-level libraries are barely more useful than doing HTTP calls yourself.
+Many OAuth providers have quirks, odd extra tricks, and may even go off-specification.
+
+Qarth is a polymorphic facade using Clojure multilmethods
+that satisfies the 99% use case:
+to fetch, track, and use permissions from multiple providers. You can
+use the same set of methods to talk to any provider or among multiple providers.
+
+Qarth comes with a zero-effort workflow for the
+security library [Friend](https://github.com/cemerick/friend).
+The workflow supports one or multiple providers.
+Qarth also includes multimethods for grabbing user IDs, email, and generic info.
+
+Qarth comes with implementations for Github, Facebook, Google, and Yahoo!, and
+makes it easy for you to write your own.
+
+TODO a bit about scribe.
 
 ## Features so far
 
@@ -16,32 +32,13 @@ out of the box. Qarth also integrates nicely with the security library
 * Straightforward functional design. No "easy" tricks or hacks. No stupid defaults.
 * Multimethod layer, because there is no one-size-fits-all way for auth.
 * Single object (actually a map) to contain auth credentials. The map
-carries type information, so users can modify, extend, and implement new behavior.
-* Implementation for the widely used Java OAuth library, Scribe.
-Any of the 40+ OAuth services supported by Scribe are usable through Qarth.
+carries type information, so users can modify, extend, and implement new multimethods.
 * Friend integration.
 
 Coming soon:
 
 * A 'strategy' based Ring implementation, similar to Ruby OmniAuth.
 * Support for all kinds of auth, not just OAuth, through the above.
-
-## Rationale
-
-There are many OAuth libraries for Clojure that more or less provide a low-level
-prettification of OAuth. Generally these low-level functions are the building
-blocks for a higher level library. The problem with this is that
-a lot of OAuth is just bookkeeping and knowing APIs, and the APIs
-can differ between providers and even go off-spec.
-Often, using a low-level OAuth library
-is only a small improvement over just doing the HTTP calls yourself.
-
-Qarth's goal is to fill this gap and provide a simple abstraction
-for authentication in Clojure.
-
-### A basic Ring app
-
-TODO
 
 ### A Friend app
 
@@ -99,6 +96,10 @@ With only a few steps, you can make your own auth systems
 if you don't like the provided Friend implementation.
 See the oauth.clj and ring.clj namespaces for more information.
 TODO generate codox for these namespaces.
+
+### A basic Ring app
+
+TODO
 
 ### Make arbitrary requests
 
