@@ -4,6 +4,17 @@ TODO lein/maven coords
 
 A library for using OAuth without setting your hair on fire.
 
+## Overview
+
+* Authenticate users in four lines of code[1].
+* Zero-configuration Friend workflows. Authenticate users in one line of code[1].
+* Polymorphic OAuth requests--support multiple providers at once
+with zero additional code.
+* Single credential object with multimethod type information.
+Modify, extend, and implement new behavior.
+
+[1] Additional lines of code may apply.
+
 ## Rationale
 
 There are several good OAuth libraries for Clojure,
@@ -162,7 +173,7 @@ https://github.com/mthvedt/qarth/blob/master/src/qarth/impl/yahoo.clj.
 
 TODO
 
-### Implement your own Qarth service
+### Use Scribe to implement your own Qarth service
 
 TODO
 
@@ -177,15 +188,15 @@ TODO generate API docs.
 [API docs](http://mthvedt.github.io/qarth/codox)
 
 See [doc/extending.md](https://github.com/mthvedt/qarth/blob/master/doc/extending.md)
-for information on extending Qarth. TODO write this.
+for information on extending Qarth.
 Or see the implementations in
 https://github.com/mthvedt/qarth/tree/master/src/qarth/impl.
 
 ## Implementations included
 
 Qarth has a generic implementation for Scribe.
-the most popular JVM Oauth library. Any Scribe implementation
-can be used with Qarth.
+the most popular JVM Oauth library. You can extend Scribe using one defmethod.
+TODO link example.
 You can add your own behavior also, using the built-in multimethods.
 
 Also, more specific implementations for Facebook, Github, Yahoo and Google

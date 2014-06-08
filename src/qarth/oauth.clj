@@ -1,14 +1,15 @@
 (ns qarth.oauth
   "Base fns for OAuth and OAuth-style interactive auth services.
   You can also define your own auth implementations--see the docs."
-  ; TODO eliminate build?
-  ; pros:
-  ; - dynamic callback URL
-  ; - simpler API
-  ; cons:
-  ; - none really
-  ; TODO revise README.md language
-  (require [qarth.lib :as l]))
+  ; TODO oauth-v2 namespace?
+  ; TODO lib vs oauth.lib
+  ; TODO debug, trace levels
+  (require [qarth.lib :as l]
+           [qarth.oauth.lib :as lib]
+           clj-http.client
+           qarth.oauth.lib))
+
+(l/derive :multi :oauth)
 
 (defmulti build 
   "Multimethod. Usage:
@@ -38,6 +39,8 @@
          (for [[k v] services]
            [k (build (merge options {:type k} v))]))})
 
+(defmethod build :oauth [x] x)
+
 (defmulti new-record
   "Multimethod. Usage:
   (new-record service)
@@ -49,10 +52,12 @@
   Returns a map with:
   :type -- required, the type of the record
   :url -- optional, a callback URL for interactive auth
-  other various implementation-specific keys
-
-  For implementation details, see the docs."
+  other various implementation-specific keys"
   l/type-first :hierarchy l/h)
+
+(defmethod new-record :oauth
+  [{request-url :request-url :as service}]
+  (lib/do-new-record service request-url {}))
 
 (defmethod new-record :multi
   ([service] (throw (IllegalArgumentException. "Missing type for multi-service")))
@@ -66,14 +71,16 @@
 
   Handles auth HTTP callbacks. Return a verifier token
   from the given Ring-formatted request. If the request was invalid,
-  (perhaps due to a CSRF attack), it should return nil.
-
-  For implementation details, see the docs."
-  l/type-first :hierarchy l/h :default :any)
+  (perhaps due to a CSRF attack), it should return nil."
+  l/type-first :hierarchy l/h)
 
 (defmethod extract-verifier :multi
-  [service {key :key record :record} ring-request]
-  (extract-verifier (get-in service [:services key]) record ring-request))
+  [service {key :key record :record} req]
+  (extract-verifier (get-in service [:services key]) record req))
+
+(defmethod extract-verifier :oauth
+  [_ {request-token :request-token} req]
+  (lib/do-extract-verifier request-token req :state :code :error))
 
 (defmulti verify
   "Multimethod. Usage:
@@ -82,15 +89,18 @@
   auth record.
   If verification fails, can return nil or optionally
   throw an Exception of some kind.
-  Idempotent--can be used on an already verified record.
-  
-  For implementation details, see the docs."
+  Idempotent--can be used on an already verified record."
   l/type-first :hierarchy l/h)
 
 (defmethod verify :multi
   [service {key :key subrecord :record :as record} verifier]
   (assoc record :record
          (verify (get-in service [:services key]) subrecord verifier)))
+
+(defmethod verify :oauth
+  [{verify-url :verify-url :as service} record verifier]
+  (lib/do-verify service record verifier
+                 verify-url {} lib/v2-json-parser))
 
 ; TODO support exception toggling
 (defmulti requestor
@@ -118,12 +128,28 @@
   :body -- an InputStream
 
   If an exceptional status code happens, throws an Exception instead.
-  Other implementations might support more opts and return more stuff."
+  Other implementations might support more opts and return more stuff.
+  
+  A default implementation is provided for implementors. It adds the param
+  :access_token to the form params if it's a POST, and the query if it's a GET."
   l/type-first :hierarchy l/h)
 
 (defmethod requestor :multi
   [service {key :key record :record}]
   (requestor (get-in service [:services key]) record))
+
+(defmethod requestor :oauth
+  [_ {access-token :access-token type :type}]
+  (if access-token
+    (vary-meta
+      (fn [req]
+        (let [req (merge {:method :get} req)
+              param-key (if (= (:method req) :post) :form-params :query-params)]
+          (prn "req" (assoc-in req [param-key :access_token] access-token))
+          (clj-http.client/request
+            (assoc-in req [param-key :access_token] access-token))))
+      assoc :type type)
+    (throw (IllegalArgumentException. "Record is not verified"))))
 
 (defmulti id
   "Multimethod. Optional. Usage:

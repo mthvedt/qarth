@@ -1,7 +1,7 @@
 (ns qarth.examples.friend-multi
   (require (qarth [oauth :as oauth]
                   util friend)
-           qarth.impl.yahoo
+           (qarth.impl yahoo facebook)
            cemerick.friend
            compojure.handler
            ring.util.response
@@ -12,8 +12,7 @@
 (def conf (qarth.util/read-resource "keys.edn"))
 
 (def service (oauth/build {:type :multi
-                           :services (dissoc conf
-                                             :facebook.com :github.com :google.com)
+                           :services (dissoc conf :github.com :google.com)
                            :options {:callback "http://localhost:3000/auth"}}))
 
 (def workflow

@@ -75,17 +75,6 @@
      :request-token (unscribe-token request-token)
      :url (.getAuthorizationUrl oauth-service request-token)}))
 
-; TODO
-(defmethod oauth/extract-verifier :scribe
-  [_ {[access-token _] :access-token}
-   {{their-token :oauth-token verifier :oauth_verifier} :params}]
-  (if (= their-token access-token)
-    verifier
-    (do
-      (log/infof "Given token %s didn't match our token %s"
-                 their-token access-token)
-      nil)))
-
 (defmethod oauth/verify :scribe
   [{^OAuthService service :service}
    {access-token :access-token request-token :request-token :as record} verifier-token]

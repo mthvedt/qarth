@@ -1,5 +1,7 @@
 (ns qarth.lib
+; TODO lib/oauth?
   "Support fns for qarth, for implementing or extending behavior."
+  (require crypto.random)
   (:refer-clojure :exclude [derive]))
 
 (def ^{:doc "The OAuth hierarchy ref."}
