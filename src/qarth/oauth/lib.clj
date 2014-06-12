@@ -93,24 +93,37 @@
      :url url
      :form-params (merge form-params additional-params)}))
 
+; TODO what should the default be?
 (defn v2-json-parser
   ; TODO doc
   [response-stream]
-  (prn response-stream)
   (let [resp (cheshire.core/parse-stream response-stream)
         {:keys [access_token token_type expires_in]} resp]
     {:access-token access_token
      :token-type token_type
      :expires-in expires_in}))
 
+(defn v2-form-parser
+  ; TODO doc
+  ; TODO expires-in or expires?
+  [response-stream]
+  (let [resp (ring.util.codec/form-decode response-stream)]
+    {:access-token (get resp "access_token")
+     :expires-in (get resp "expires")
+     :token-type (get resp "token_type")}))
+
 (defn activate
   "Helper fn for OAuth records. Dissocs :url and :request-token,
-  and adds :access-token and the given additional params."
-  [record access-token additional-params]
-  (merge additional-params
-         (-> record
-           (dissoc :url :request-token)
-           (assoc :access-token access-token))))
+  and adds the given keys and valeus. Nil or already-present values are ignored."
+  ; TODO behavior... check params &c
+  [record param-map]
+  (let [record (dissoc record :url :request-token)]
+    (reduce (fn [record [k v]] (if (and v (not (record k)))
+                                 (assoc record k v)
+                                 record))
+            record param-map)))
+
+; TODO a jwt parser
 
 ; TODO verify language? API?
 (defn do-verify
@@ -119,9 +132,8 @@
   The parse-fn should return a map containing at least the key :access-token,
   the optional key :expires-in, and any other keys you might want. Nil values
   will be ignored."
-  [service record verifier url additional-params parser]
+  [service record verifier url parser]
   (when-let [resp (-> service
-                     (make-verify-request record verifier url additional-params)
-                     clj-http.client/request
-                     parser)]
-    (activate record (:access-token resp) (dissoc resp :access-token))))
+                     (make-verify-request record verifier url {})
+                     clj-http.client/request :body parser)]
+    (activate record resp)))

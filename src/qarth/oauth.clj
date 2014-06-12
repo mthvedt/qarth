@@ -145,7 +145,6 @@
       (fn [req]
         (let [req (merge {:method :get} req)
               param-key (if (= (:method req) :post) :form-params :query-params)]
-          (prn "req" (assoc-in req [param-key :access_token] access-token))
           (clj-http.client/request
             (assoc-in req [param-key :access_token] access-token))))
       assoc :type type)

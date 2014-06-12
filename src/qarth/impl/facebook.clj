@@ -1,5 +1,5 @@
 (ns qarth.impl.facebook
-  "A Facebook oauth impl."
+  "A Facebook oauth impl. Type is facebook.com."
   (require [qarth.oauth :as oauth]
            cheshire.core
            [qarth.oauth.lib :as lib]
@@ -8,7 +8,7 @@
 (qarth.lib/derive :facebook.com :oauth)
 
 ; TODO make example
-; TODO verifier nomenclature?
+; TODO verifier nomenclature? Actually all nomenclature
 (defmethod oauth/build :facebook.com
   [service]
   (assoc service
@@ -18,16 +18,10 @@
 ; TODO maybe better as multimethod?
 (defmethod oauth/verify :facebook.com
   [service record verifier]
-  (lib/do-verify service record verifier (:verify-url service) {}
-                 (fn [req]
-                   (let [resp (-> req :body (ring.util.codec/form-decode))]
-                     {:access-token (get resp "access_token")
-                      :expires (get resp "expires")}))))
+  (lib/do-verify service record verifier (:verify-url service) lib/v2-form-parser))
 
 (defmethod oauth/id :facebook.com
   [requestor]
-  (let [resp (requestor {:url "https://graph.facebook.com/me"})]
-    (-> resp
-      :body
-      cheshire.core/parse-string
-      (get "id"))))
+  ; TODO requestor body should be a stream
+  (-> (requestor {:url "https://graph.facebook.com/me"})
+    :body cheshire.core/parse-string (get "id")))
