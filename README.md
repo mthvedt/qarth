@@ -51,37 +51,39 @@ Coming soon:
 * A 'strategy' based Ring implementation, similar to Ruby OmniAuth.
 * Support for all kinds of auth, not just OAuth, through the above.
 
-### A Friend app
+### A basic configuration
+
+Qarth puts all your super-secret information, like API keys and passwords,
+in auth services. Auth services are built from ordinary maps.
 
 ```clojure
-; Create an auth service
 (def conf {:type :yahoo.com
            :callback "http://localhost:3000"
            :api-key "my-key"
            :api-secret "my-secret"})
-; An auth service contains all your super-secret information, like API passwords.
-; Qarth separates auth services, which contain your darkest secrets,
-; from auth records, which are kept in Ring sessions and contain user information.
 (def service (qarth.oauth/build conf))
+```
 
+### A Friend app
+
+```clojure
 (def workflow (qarth.friend/workflow {:service service}))
 
-; A requestor uses verified OAuth credentials to make http requests.
-; oauth/id is a method on requestors.
-; Here we grab the requestor from our verified OAuth credentials
-; and request a user ID.
 (defroutes app
   (GET "/" req
        (cemerick.friend/authorize
          #{::user}
+         ; A requestor uses verified OAuth credentials to make http requests.
+         ; qarth.friend/requestor can get a requestor from the Friend credentials.
+         ; oauth/id is a method on requestors.
          (let [id (-> req (qarth.friend/requestor service) oauth/id)]
            (str "<html><body>Hello friend! Your unique user ID is "
                 id
                 "</body></html>")))))
 
-; Using the workflow is simple. To kick off OAuth,
-; just redirect users to the :auth-url and Qarth handles the rest.
+; To kick off OAuth, redirect users to the :auth-url and Qarth handles the rest.
 ; Here the :auth-url is "/login", the default Friend redirect.
+; But it could also be a landing page.
 (def app
   (-> app
     (cemerick.friend/authenticate {:workflows [workflow] :auth-url "/login"
@@ -91,7 +93,7 @@ Coming soon:
 
 ### A command-line app
 
-Qarth's basic facade is very simple. Here's how to use it:
+Qarth's basic facade authenticates users in only two multimethod calls.
 
 ```clojure
 ; Assume service is an OAuth service with no callback
@@ -103,20 +105,16 @@ Qarth's basic facade is very simple. Here's how to use it:
 (println "Your unique user ID is " (->> sesh (oauth/requestor service) oauth/id))
 ```
 
-With only a few steps, you can make your own auth systems
-if you don't like the provided Friend implementation.
-See the oauth.clj and ring.clj namespaces for more information.
-TODO generate codox for these namespaces.
-
 ### A basic Ring app
 
 TODO
 
 ### Make arbitrary requests
 
+A 'requestor', in addition to being an object with multimethods,
+is a vanilla fn that can be used to make arbitrary HTTP requests.
+
 ```clojure
-; A 'requestor', in addition to being an object with multimethods,
-; is a vanilla fn that can be used to make arbitrary HTTP requests.
 ; TODO don't use yahoo!, too complicated.
 (def requestor (requestor service sesh))
 (def user-guid (-> (requestor {:url "https://social.yahooapis.com/v1/me/guid"})
@@ -124,10 +122,11 @@ TODO
 				clojure.xml/parse
 				:content first :content first))
 (println "Your user GUID is " user-guid)
-; Requestors support many (or all! depending on implementation)
-; of the options that :clj-http supports.
 ; TODO write a more elaborate example.
 ```
+
+Requestors support many (or all! depending on implementation)
+of the options that :clj-http supports.
 
 ### Using multiple services
 
@@ -166,14 +165,14 @@ TODO
 (def service (build conf))
 ```
 
-You can also implement your own using Scribe. For example, see
+Scribe covers all features of OAuth EXCEPT extracting verifiers from callbacks.
+To implement your own Scribe-based service, just add a multimethod type
+and implement the method extract-verifier.
+
+For example, see
 https://github.com/mthvedt/qarth/blob/master/src/qarth/impl/yahoo.clj.
 
 ### Roll your own multimethods
-
-TODO
-
-### Use Scribe to implement your own Qarth service
 
 TODO
 
@@ -211,6 +210,6 @@ for logging.
 
 ## License
 
-Copyright © 2014 Zimilate, Inc.; Mike Thvedt
+Copyright © 2014 Zimilate, Inc., Mike Thvedt
 
 Distributed under the Eclipse Public License, the same as Clojure.

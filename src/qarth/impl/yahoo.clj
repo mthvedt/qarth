@@ -10,7 +10,7 @@
 (defmethod oauth/extract-verifier :yahoo.com
   [service record request]
   (lib/do-extract-verifier (-> record :request-token first)
-                           request :oauth-token :oauth-verifier :oauth_problem))
+                           request :oauth_token :oauth_verifier :oauth_problem))
 
 (defmethod oauth/id :yahoo.com
   [requestor]

@@ -9,6 +9,7 @@
   :aliases {"example" ["trampoline" "with-profile" "example" "run" "-m"]}
   :dependencies [[org.clojure/clojure "1.5.1"]
 
+                 [org.clojure/data.codec "0.1.0"]
                  [crypto-random "1.2.0"]
                  [org.clojure/tools.logging "0.2.6"]
                  [clj-http "0.9.2"]

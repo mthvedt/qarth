@@ -1,7 +1,11 @@
 (ns qarth.oauth.lib
   "Helper fns for OAuth implementations."
+  ; TODO friend relogin should work
   (require clj-http.client
-           ring.util.codec))
+           cheshire.core
+           ring.util.codec
+           clojure.data.codec.base64
+           clojure.string))
 ; TODO better error in invalid session than 'missing type for multi-service'
 ; maybe a verified? key in session
 
@@ -32,7 +36,7 @@
     callback :callback scope :scope :as service}
    url extra-params]
   (let [token (csrf-token)
-        extra-params (if (and scope (not :scope extra-params))
+        extra-params (if (and scope (not (:scope extra-params)))
                        (assoc extra-params :scope scope)
                        extra-params)
         url-form {:client_id client_id
@@ -112,18 +116,44 @@
      :expires-in (get resp "expires")
      :token-type (get resp "token_type")}))
 
+(defn- url-base64-adjuster
+  ;Adjuster for Base64 URL for decoding JWTs. See
+  ;http://tools.ietf.org/html/draft-jones-json-web-signature-04
+  [s]
+  (let [s (-> s
+            (clojure.string/replace \+ \-)
+            (clojure.string/replace \/ \_))]
+    (case (mod (.length s) 4)
+      2 (.concat s "==")
+      3 (.concat s "=")
+      0 s)))
+
+(defn- jwt-read-field [field]
+  (-> field
+    url-base64-adjuster
+    (.getBytes "UTF-8")
+    clojure.data.codec.base64/decode
+    java.io.ByteArrayInputStream. java.io.InputStreamReader. java.io.BufferedReader.
+    cheshire.core/parse-stream))
+
+(defn jwt-read
+  "Decodes a URL-encoded JSON Web Token into a seq of constituent JSON objects."
+  [fields]
+  (if fields
+    (let [[f1 f2 f3] (clojure.string/split fields #"\.")]
+      [(jwt-read-field f1) (jwt-read-field f2) f3])))
+
 (defn activate
   "Helper fn for OAuth records. Dissocs :url and :request-token,
   and adds the given keys and valeus. Nil or already-present values are ignored."
   ; TODO behavior... check params &c
   [record param-map]
   (let [record (dissoc record :url :request-token)]
-    (reduce (fn [record [k v]] (if (and v (not (record k)))
+    (reduce (fn [record [k v]]
+              (if (and v (not (record k)))
                                  (assoc record k v)
                                  record))
             record param-map)))
-
-; TODO a jwt parser
 
 ; TODO verify language? API?
 (defn do-verify
