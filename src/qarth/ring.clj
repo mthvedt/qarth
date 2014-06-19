@@ -1,5 +1,5 @@
 (ns qarth.ring
-  "Low-level Ring fns to use with Qarth."
+  "Low-level Ring fns to use with Qarth. This lib is under construction."
   (require [qarth.oauth :as oauth]
            ring.util.response
            [clojure.tools.logging :as log])
@@ -13,15 +13,19 @@
   a multiservice with the specified key."
   ([service]
    (fn [{session :session params :query-params}]
+     (log/trace "New record redirect handler")
      (let [record (if-let [key (clojure.core/get params "service")]
                     (oauth/new-record service (keyword key))
                     (oauth/new-record service))
            session (assoc session ::oauth/record record)]
+       (log/debug "Installing in session new oauth record and redirecting"
+                  (pr-str record))
        (assoc (ring.util.response/redirect (:url record))
               :session session))))
   ([service key]
    (let [h (new-record-redirect-handler service)]
      (fn [req]
+       (log/trace "New record redirect handler with key" key)
        (h (assoc-in req [:query-params "service"] key))))))
 
 (defn get
@@ -46,18 +50,20 @@
   [request f]
   (update-in request [:session ::oauth/record] f))
 
-; TODO should we distinguish between normal failures and exceptional cases?
-(defn verify-request
-  "Given a callback in the form of a Ring request, verifies the current auth record.
+(defn activate-request
+  "Given a callback in the form of a Ring request, activates the current auth record.
   Returns the updated Ring request with the new auth record.
-  Throws an exception on failure."
+  Returns null if it's not an activation request. Throws an exception on failure."
   [service {{record ::oauth/record} :session :as request}]
-  (if-let [v (oauth/extract-verifier service record request)]
-    (if-let [record (oauth/verify service record v)]
-      (set request record)
-      (throw (RuntimeException. (str "Could not verify record with token " v))))
-    (throw (RuntimeException. (str "Could not get verifier with params: "
-                                   (pr-str (:params request)))))))
+  (log/trace "Activate request")
+  (if-let [v (oauth/extract-code service record request)]
+    (do
+      (log/debug "Got auth code" v)
+      (if-let [record (oauth/activate service record v)]
+        (do
+          (log/debug "Got active record" (pr-str record))
+          (set request record))
+        (throw (RuntimeException. (str "Could not activate record with token " v)))))))
 
 (defn auth-callback-handler
   "Returns a Ring handler that handles an auth callback request,
@@ -65,14 +71,21 @@
   and attempts to verify the current auth record.
   If success, continues to call (success-handler request).
   If failure, calls (exception-handler request exception)."
-  [service success-handler exception-handler]
+  [service success-handler fallback-handler exception-handler]
   (fn [req]
+    (log/trace "Auth callback handler")
     (try
-      (log/trace "Verifying auth record...")
-      (let [req (verify-request service req)]
-        (log/trace "Verified auth record")
-        (success-handler req))
+      (if-let [resp (activate-request service req)]
+        (success-handler resp)
+        (if fallback-handler
+          (do
+            (log/debug "Failed to get auth code, executing fallback handler")
+            (fallback-handler req))
+          (-> req :params pr-str
+            (str "Could not get auth code with params: ")
+            throw)))
       (catch Exception e
+        (log/debug "Auth callback handler caught exception" (.getMessage e))
         (exception-handler req e)))))
 
 (defn omni-handler
@@ -82,10 +95,10 @@
 
   Required params:
   service -- The auth service.
-  success-handler -- Called when an auth record is successfully verified
-  (or is already verified).
-  failure-handler -- Called when an auth record exists, is unverified,
-  but could not be verified. An exception is logged and the auth record is removed
+  success-handler -- Called when an auth record is successfully activated
+  (or is already active).
+  failure-handler -- Called when an auth record exists, is inactive,
+  but could not be activated. An exception is logged and the auth record is removed
   first.
 
   Optional params:
@@ -93,23 +106,31 @@
   Default is qarth.ring/new-record-redirect-handler.
   exception-handler -- a function (f request exception). The default
   is to log the exception, remove the auth record, and call failure-handler.
+  fallback -- If true, verification attempts that fail will be assumed
+  to be initial auth attempts, and will call new-record-handler instead.
+  Defaults to true.
 
   Query params:
   key -- if present, will construct auth records from a multiservice
   using the specified key."
   [{:keys [service success-handler failure-handler
-           new-record-handler exception-handler]
+           new-record-handler exception-handler fallback]
     :as config}]
   (let [new-record-handler (or new-record-handler
                                (new-record-redirect-handler service))
+        fallback (or fallback (nil? fallback))
         exception-handler (or exception-handler
                               (fn [req e]
+                                (log/trace "Default exception handler")
                                 (log/info e "Exception trying to verify record")
                                 (failure-handler (set req nil))))
         callback-handler (auth-callback-handler service success-handler
+                                                (if fallback new-record-handler)
                                                 exception-handler)]
-    ; TODO call it subservice? key?
     (fn [req]
+      (log/trace "Ring omni-handler")
+      (log/trace "Session" (:session req))
+      (log/trace "Params" (:params req))
       (if-let [record (get req)]
         (callback-handler req)
         (new-record-handler req)))))

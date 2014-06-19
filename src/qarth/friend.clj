@@ -31,7 +31,9 @@
   "Get an auth requestor from a Friend-authenticated request and a service."
   [req service]
   (if-let [r (auth-record req)]
-    (oauth/requestor service r)))
+    ; TODO test oauth activeness
+    (if true
+      (oauth/requestor service r))))
 
 (defn workflow
   "Creates a Friend workflow using a Qarth service.
@@ -49,15 +51,17 @@
   key -- for multi-services. Can also be passed as a query param, \"service\".
   credential-fn -- override the Friend credential fn.
   The default Friend credential-fn, for some reason, returns nil.
-  The credential map is of the form
+  The credential map supplied is of the form
   {::qarth.oauth/record auth-record, :identity ::qarth.oauth/anonymous}.
   redirect-on-auth? -- the Friend redirect on auth setting, default true
   login-failure-handler -- the login failure handler.
-  Default is to use the Friend login-failure-handler, redirect to a
-  configured login-url or redirect to the Friend :login-uri while
-  preserving the current record.
+  The default is to redirect to the configured login-url.
+  Failure also logs an exception and clears the current auth record.
 
   Exceptions are logged and treated as auth failures."
+  ; TODO options:
+  ; triple redirect
+  ; referer checking
   [{:keys [service key auth-url credential-fn redirect-on-auth?
            login-url login-uri login-failure-handler] :as params}]
   (fn [{ring-sesh :session :as req}]
@@ -88,7 +92,10 @@
                                                   (:login-url auth-config)
                                                   (:login-uri auth-config)))
                                             :session (:session req))))]
-          ((qarth-ring/omni-handler {:service service
-                                     :success-handler success-handler
-                                     :failure-handler login-failure-handler})
-             req))))))
+          (let [resp
+                ((qarth-ring/omni-handler {:service service
+                                           :success-handler success-handler
+                                           :failure-handler login-failure-handler})
+                   req)]
+            (log/trace "Workflow returning" (pr-str resp))
+            resp))))))

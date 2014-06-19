@@ -3,15 +3,16 @@
   The build method requires a Scribe OAuth provider class, under the key
   :provider."
   (require (qarth [oauth :as oauth]
-                  [lib :as lib]
-                  [util :as util])
+                  [util :as util]
+                  auth)
+           [qarth.oauth.lib :as lib]
            clojure.java.io
            [clojure.tools.logging :as log])
   (import [java.lang String Boolean]
           [org.scribe.model OAuthRequest Token]
           [org.scribe.oauth OAuthService]))
 
-(lib/derive :scribe :oauth)
+(qarth.auth/derive :scribe :oauth)
 
 (defn scribe-verb-from-opts
   [opts]
@@ -59,7 +60,7 @@
   that builds a Scribe service with the provided type and api."
   [type api]
   `(do
-     (lib/derive ~type :scribe)
+     (qarth.auth/derive ~type :scribe)
      (defmethod oauth/build ~type
        [spec#]
        (-> spec#
@@ -70,25 +71,22 @@
 (defmethod oauth/new-record :scribe
   [{service-type :type ^OAuthService oauth-service :service
     provider :provider api-key :api-key :as service}]
-  (let [request-token (.getRequestToken oauth-service)]
+  (let [state (.getRequestToken oauth-service)]
     {:type service-type
-     :request-token (unscribe-token request-token)
-     :url (.getAuthorizationUrl oauth-service request-token)}))
+     :state (unscribe-token state)
+     :url (.getAuthorizationUrl oauth-service state)}))
 
-(defmethod oauth/verify :scribe
+(defmethod oauth/activate :scribe
   [{^OAuthService service :service}
-   {access-token :access-token request-token :request-token :as record} verifier-token]
+   {access-token :access-token state :state :as record}
+   code]
   (if access-token
     record
-    (let [access-token (->> verifier-token
+    (let [access-token (->> code
                          (org.scribe.model.Verifier.)
-                         (.getAccessToken service (scribe-token request-token))
+                         (.getAccessToken service (scribe-token state))
                          unscribe-token)]
-      (-> record
-        (dissoc :url :request-token)
-        (assoc :access-token access-token)))))
-
-; TODO impl extract-verifier
+      (lib/activate-record record {:access-token access-token}))))
 
 (defmethod oauth/requestor :scribe
   [{^OAuthService service :service service-type :type} {access-token :access-token}]

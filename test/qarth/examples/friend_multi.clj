@@ -19,13 +19,14 @@
 
 ; TODO better errors on missing auth service
 (defroutes app
-  (GET "/login" _
-       (str "<html><head/><body>"
-            "<p><a href=\"/auth?service=yahoo.com\">Login with Yahoo!</p>"
-            "<p><a href=\"/auth?service=facebook.com\">Login with Facebook</p>"
-            "<p><a href=\"/auth?service=github.com\">Login with Github</p>"
-            "<p><a href=\"/auth?service=google.com\">Login with Google</p>"
-            "</body></html>"))
+  (cemerick.friend/logout
+    (GET "/login" _
+         (str "<html><head/><body>"
+              "<p><a href=\"/auth?service=yahoo.com\">Login with Yahoo!</p>"
+              "<p><a href=\"/auth?service=facebook.com\">Login with Facebook</p>"
+              "<p><a href=\"/auth?service=github.com\">Login with Github</p>"
+              "<p><a href=\"/auth?service=google.com\">Login with Google</p>"
+              "</body></html>")))
   (GET "/" req
        (cemerick.friend/authorize
          #{::user}

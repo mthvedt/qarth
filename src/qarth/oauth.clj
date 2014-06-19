@@ -1,15 +1,14 @@
 (ns qarth.oauth
   "Base fns for OAuth and OAuth-style interactive auth services.
   You can also define your own auth implementations--see the docs."
-  ; TODO oauth-v2 namespace?
-  ; TODO lib vs oauth.lib
-  ; TODO debug, trace levels
-  (require [qarth.lib :as l]
+  ; TODO request is active?
+  (require qarth.auth
+           [qarth.support :as s]
            [qarth.oauth.lib :as lib]
            clj-http.client
            qarth.oauth.lib))
 
-(l/derive :multi :oauth)
+(qarth.auth/derive :multi :oauth)
 
 (defmulti build 
   "Multimethod. Usage:
@@ -29,7 +28,7 @@
   
   Auth services contain secret information, like api secret keys.
   Be careful if about writing or serializing them."
-  l/type-first :hierarchy l/h)
+  s/type-first :hierarchy s/h)
 
 (defmethod build :multi
   [{services :services options :options :as spec}]
@@ -47,60 +46,58 @@
   (new-record multi-service key)
 
   Returns an inactive OAuth record. An OAuth record keeps tracks of
-  request tokens, verifiers, access tokens, CSRF, &c.
+  state tokens, request tokens, auth codes, access tokens, CSRF, &c.
 
   Returns a map with:
   :type -- required, the type of the record
   :url -- optional, a callback URL for interactive auth
   other various implementation-specific keys"
-  l/type-first :hierarchy l/h)
+  s/type-first :hierarchy s/h)
 
 (defmethod new-record :oauth
   [{request-url :request-url :as service}]
   (lib/do-new-record service request-url {}))
 
 (defmethod new-record :multi
-  ([service] (throw (IllegalArgumentException. "Missing type for multi-service")))
+  ([service] (throw (IllegalArgumentException. "Missing OAuth service type")))
   ([service key]
    (let [record (new-record (get-in service [:services key]))]
    {:type :multi :key key :record record :url (:url record)})))
 
-(defmulti extract-verifier
+(defmulti extract-code
   "Multimethod. Usage:
-  (extract-verifier service record ring-request)
+  (extract-code service record ring-request)
 
-  Handles auth HTTP callbacks. Return a verifier token
-  from the given Ring-formatted request. If the request was invalid,
-  (perhaps due to a CSRF attack), it should return nil."
-  l/type-first :hierarchy l/h)
+  Return an auth code from the given Ring-formatted request.
+  If the request was invalid (perhaps due to a CSRF attack),
+  it should return nil."
+  s/type-first :hierarchy s/h)
 
-(defmethod extract-verifier :multi
+(defmethod extract-code :multi
   [service {key :key record :record} req]
-  (extract-verifier (get-in service [:services key]) record req))
+  (extract-code (get-in service [:services key]) record req))
 
-(defmethod extract-verifier :oauth
-  [_ {request-token :request-token} req]
-  (lib/do-extract-verifier request-token req :state :code :error))
+(defmethod extract-code :oauth
+  [_ {state :state} req]
+  (lib/do-extract-code state req :state :code :error))
 
-(defmulti verify
+(defmulti activate
   "Multimethod. Usage:
-  (verify service record verifier)
-  Takes a new auth record and a verifier, and creates a verified, active
-  auth record.
-  If verification fails, can return nil or optionally
+  (activate service record auth-code)
+  Takes a new auth record and a auth-code, and creates an active auth record.
+  If activation fails, can return nil or optionally
   throw an Exception of some kind.
-  Idempotent--can be used on an already verified record."
-  l/type-first :hierarchy l/h)
+  Idempotent--can be used on an already activated record."
+  s/type-first :hierarchy s/h)
 
-(defmethod verify :multi
-  [service {key :key subrecord :record :as record} verifier]
+(defmethod activate :multi
+  [service {key :key subrecord :record :as record} auth-code]
   (assoc record :record
-         (verify (get-in service [:services key]) subrecord verifier)))
+         (activate (get-in service [:services key]) subrecord auth-code)))
 
-(defmethod verify :oauth
-  [{verify-url :verify-url :as service} record verifier]
-  (lib/do-verify service record verifier
-                 verify-url {} lib/v2-json-parser))
+(defmethod activate :oauth
+  [{access-url :access-url :as service} record auth-code]
+  (lib/do-activate service record auth-code access-url lib/v2-form-parser))
 
 ; TODO support exception toggling
 (defmulti requestor
@@ -125,14 +122,14 @@
   Returns a Ring-Style response map containing at least:
   :status -- the status code
   :headers -- the http headers
-  :body -- an InputStream
+  :body -- an InputStream (be sure to read and/or close it when you're done!)
 
   If an exceptional status code happens, throws an Exception instead.
   Other implementations might support more opts and return more stuff.
   
   A default implementation is provided for implementors. It adds the param
   :access_token to the form params if it's a POST, and the query if it's a GET."
-  l/type-first :hierarchy l/h)
+  s/type-first :hierarchy s/h)
 
 (defmethod requestor :multi
   [service {key :key record :record}]
@@ -143,12 +140,12 @@
   (if access-token
     (vary-meta
       (fn [req]
-        (let [req (merge {:method :get} req)
+        (let [req (merge {:method :get :as :stream} req)
               param-key (if (= (:method req) :post) :form-params :query-params)]
           (clj-http.client/request
             (assoc-in req [param-key :access_token] access-token))))
       assoc :type type)
-    (throw (IllegalArgumentException. "Record is not verified"))))
+    (throw (IllegalArgumentException. "Record is not active"))))
 
 (defmulti id
   "Multimethod. Optional. Usage:
@@ -156,4 +153,4 @@
 
   Gets a user ID from the requestor. The ID is guaranteed to be unique
   and unchanging per service."
-  type :hierarchy l/h)
+  type :hierarchy s/h)

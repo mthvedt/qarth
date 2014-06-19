@@ -3,16 +3,16 @@
   (require [qarth.oauth :as oauth]
            [qarth.oauth.lib :as lib]
            qarth.impl.scribe
-           clojure.xml))
+           clojure.data.xml))
 
 (qarth.impl.scribe/extend-scribe :yahoo.com org.scribe.builder.api.YahooApi)
 
-(defmethod oauth/extract-verifier :yahoo.com
+(defmethod oauth/extract-code :yahoo.com
   [service record request]
-  (lib/do-extract-verifier (-> record :request-token first)
-                           request :oauth_token :oauth_verifier :oauth_problem))
+  (lib/do-extract-code (-> record :state first)
+                       request :oauth_token :oauth_verifier :oauth_problem))
 
 (defmethod oauth/id :yahoo.com
   [requestor]
   (-> (requestor {:url "https://social.yahooapis.com/v1/me/guid"})
-    :body clojure.xml/parse :content first :content first))
+    :body clojure.data.xml/parse :content first :content first))
