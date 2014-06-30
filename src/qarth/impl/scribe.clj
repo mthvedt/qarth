@@ -7,6 +7,7 @@
                   auth)
            [qarth.oauth.lib :as lib]
            clojure.java.io
+           clojure.string
            [clojure.tools.logging :as log])
   (import [java.lang String Boolean]
           [org.scribe.model OAuthRequest Token]
@@ -16,12 +17,8 @@
 
 (defn scribe-verb-from-opts
   [opts]
-  (if-let [m (:method opts)]
-    (case (.toLowerCase ^String (name m))
-      "get" org.scribe.model.Verb/GET
-      (throw (java.lang.IllegalArgumentException.
-               (str "Unknown or unsupported method: " m))))
-    org.scribe.model.Verb/GET))
+  (-> opts (:method "get")
+    name clojure.string/upper-case org.scribe.model.Verb/valueOf))
 
 (defn scribe-token
   "Convert a token to a Scribe object.
@@ -105,10 +102,11 @@
         (let [resp (.send req)
               status (.getCode resp)
               _ (when-not (and (.isSuccessful resp) (util/success? status))
-                  (throw (java.lang.RuntimeException.
+                  (throw (ex-info
                            (str "Request failed for service "
                                 service-type ", status " status ", request was "
-                                (pr-str opts)))))]
+                                (pr-str opts))
+                           {::oauth/response-status status})))]
           {:status status
            :body (.getStream resp)
            :headers (into {} (.getHeaders resp))})))

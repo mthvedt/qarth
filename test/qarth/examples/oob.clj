@@ -1,32 +1,30 @@
 (ns qarth.examples.oob
   (:gen-class)
-  (require qarth.util qarth.impl.scribe clojure.string clojure.xml)
-  (use qarth.oauth))
+  (require [qarth.oauth :as oauth]
+           qarth.util
+           qarth.impl.scribe
+           clojure.string
+           clojure.data.xml))
 
 (def conf (qarth.util/read-resource "keys.edn"))
 
-(def service (build (assoc (:yahoo conf) :type :scribe
-                           :provider org.scribe.builder.api.YahooApi)))
+(def service (oauth/build (assoc (:yahoo.com conf)
+                                 :type :scribe
+                                 :provider org.scribe.builder.api.YahooApi)))
 
-; TODO clean up and fix
 (defn -main [& args]
-  (let [sesh (new-session service)
-        _ (println "Auth url:" (:url sesh))
+  (let [rec (oauth/new-record service)
+        _ (println "Auth url:" (:url rec))
         _ (print "Enter token: ")
         _ (flush)
         token (clojure.string/trim (read-line))
-        sesh (verify service sesh token)
-        user-guid (->
-                    (request-raw service sesh
-                             {:url "https://social.yahooapis.com/v1/me/guid"})
-                    :body
-                    clojure.xml/parse
-                    :content first :content first)
+        rec (oauth/activate service rec token)
+        user-guid (-> ((oauth/requestor service rec)
+                         {:url "https://social.yahooapis.com/v1/me/guid"})
+                    :body clojure.data.xml/parse :content first :content first)
         _ (println "user-guid:" user-guid)
-        user-info (-> (request-raw service sesh
-                               {:url (str "https://social.yahooapis.com/v1/user/"
-                                          user-guid "/profile")})
-                    :body
-                    clojure.xml/parse
-                    :content)
+        user-info (-> ((oauth/requestor service rec)
+                         {:url (str "https://social.yahooapis.com/v1/user/"
+                                    user-guid "/profile")})
+                    :body clojure.data.xml/parse :content)
         _ (println "user info:" (pr-str user-info))]))

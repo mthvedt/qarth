@@ -5,6 +5,7 @@
            qarth.impl.scribe
            clojure.data.xml))
 
+; TODO .com?
 (qarth.impl.scribe/extend-scribe :yahoo.com org.scribe.builder.api.YahooApi)
 
 (defmethod oauth/extract-code :yahoo.com
@@ -14,5 +15,6 @@
 
 (defmethod oauth/id :yahoo.com
   [requestor]
-  (-> (requestor {:url "https://social.yahooapis.com/v1/me/guid"})
-    :body clojure.data.xml/parse :content first :content first))
+  (oauth/with-resp-reader
+    [body requestor {:url "https://social.yahooapis.com/v1/me/guid"}]
+    (-> body clojure.data.xml/parse :content first :content first)))

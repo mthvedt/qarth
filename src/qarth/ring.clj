@@ -63,7 +63,8 @@
         (do
           (log/debug "Got active record" (pr-str record))
           (set request record))
-        (throw (RuntimeException. (str "Could not activate record with token " v)))))))
+        (throw (ex-info (str "Could not activate record with token " v)
+                        {::qarth.auth/status 400}))))))
 
 (defn auth-callback-handler
   "Returns a Ring handler that handles an auth callback request,
@@ -83,6 +84,7 @@
             (fallback-handler req))
           (-> req :params pr-str
             (str "Could not get auth code with params: ")
+            (ex-info {::qarth.auth/status 400})
             throw)))
       (catch Exception e
         (log/debug "Auth callback handler caught exception" (.getMessage e))
@@ -132,5 +134,7 @@
       (log/trace "Session" (:session req))
       (log/trace "Params" (:params req))
       (if-let [record (get req)]
-        (callback-handler req)
+        (if (oauth/active? service record)
+          (success-handler req)
+          (callback-handler req))
         (new-record-handler req)))))

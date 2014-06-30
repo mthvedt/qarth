@@ -51,7 +51,7 @@ from a configuration file.
 (require '[qarth.oauth :as oauth])
 (require 'qarth.impl.facebook)
 (def conf {:type :facebook.com
-           :callback "http://localhost:3000"
+           :callback "http://localhost:3000/login"
            :api-key "my-key"
            :api-secret "my-secret"})
 (def service (oauth/build conf))
@@ -64,7 +64,7 @@ Auth records are readable and writable maps of data
 and can be stored in cookies, sessions, databases, Friend credentials, etc.
 
 ```clojure
-(def workflow (qarth.friend/workflow {:service service}))
+(def workflow (qarth.friend/oauth-workflow {:service service}))
 
 (defroutes app
   (GET "/" req
@@ -107,14 +107,15 @@ A 'requestor', in addition to being an object with multimethods,
 is a vanilla fn that can be used to make arbitrary HTTP requests.
 
 ```clojure
-(def requestor (oauth/requestor service sesh))
+(def requestor (oauth/requestor service record))
 (def user-guid (-> (requestor {:url "https://graph.facebook.com/me"})
 				:body slurp clojure.data.json/read-str (get :id)))
 (println "Your user GUID is " user-guid)
 ```
 
 Requestors support many (or all! depending on implementation)
-of the options that :clj-http supports.
+of the options that :clj-http supports. They return Ring-style response maps.
+(As is usual in web APIs, make sure to fully read and/or close the response body.)
 
 ### Using multiple services
 
@@ -131,8 +132,8 @@ of the options that :clj-http supports.
 (def service (oauth/build conf))
 
 ; Works the same as an ordinary service, except for one thing...
-; to open a new session takes an extra argument.
-(def sesh (new-session service :yahoo.com))
+; to open a new record takes an extra argument.
+(def record (new-record service :yahoo.com))
 
 ; You can use Friend by adding an extra ?service= query param.
 ; A basic login page might look like this:
@@ -142,8 +143,6 @@ of the options that :clj-http supports.
           "<p><a href=\"/auth?service=github.com\">Login with Github</p>"
           "</body></html>"))
 ```
-
-TODO friend url format
 
 ### A basic Ring app
 
@@ -171,6 +170,8 @@ You can also override individual multimethods, as seen in the
 [Google](https://github.com/mthvedt/qarth/blob/master/src/qarth/impl/google.clj)
 implementation (which uses JSON and JWTs instead of form encoding).
 
+Many useful fns can be found in qarth.oauth.lib [TODO LINK].
+
 [2] The OAuth2 spec specifies JSON-encoded responses. However,
 it seems to be routine not to follow that part of the spec.
 
@@ -191,7 +192,8 @@ the most popular OAuth library for the JVM.
 
 Scribe covers all features of OAuth EXCEPT extracting auth codes from callbacks.
 To implement your own Scribe-based service, just add a multimethod type
-and implement the method extract-code.
+and implement the method extract-code. If the Scribe-based service
+returns standard OAuth v2 form-encoded responses, you don't have to do anything.
 
 For example, see
 https://github.com/mthvedt/qarth/blob/master/src/qarth/impl/yahoo.clj.
@@ -225,7 +227,11 @@ For more, see the codox or examples. TODO CODOX
 ## Logging
 
 Qarth uses [clojure.tools.logging](https://github.com/clojure/tools.logging)
-for logging.
+for logging. You can turn on DEBUG for qarth to log important login activity,
+and TRACE to see very detailed info on everything that's happening.
+
+TRACE logging logs auth records, if that is a security concern. It does not
+log auth services or any private information contained therein.
 
 ## License
 

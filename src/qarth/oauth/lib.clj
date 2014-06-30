@@ -1,6 +1,6 @@
 (ns qarth.oauth.lib
   "Helper fns for OAuth implementations."
-  (require qarth.auth
+  (require [qarth.auth :as auth]
            clj-http.client
            cheshire.core
            ring.util.codec
@@ -9,7 +9,7 @@
            [clojure.java.io :as io]
            clojure.string))
 
-(qarth.auth/derive :oauth)
+(auth/derive :oauth)
 
 (defn csrf-token
     "Returns a random base-64 encoded 12-byte CSRF token."
@@ -78,14 +78,14 @@
     (log/tracef "From params %s extracted state %s code %s error %s"
                 (pr-str params) their-state code error)
     (cond
-      error (-> "OAuth access request returned error:"
+      error (-> "OAuth access request returned error"
               (str " " error)
-              RuntimeException. throw)
+              (ex-info {::auth/status 400}) throw)
       (not (or their-state code)) nil
       (= their-state our-state) code
       true (-> "Given state token %s didn't match our state token %s"
              (format their-state our-state)
-             RuntimeException. throw))))
+             (ex-info {::auth/status 400}) throw))))
 
 (defn- make-token-request
   "Helper fn for OAuth v2 services. Creates a Ring HTTP POST
@@ -173,7 +173,7 @@
 
   The parser should return a map containing at least the key :access-token
   and the optional key :expires-in. All keys will be added to the record.
-  Params:
+  
   service -- the auth service
   record -- the auth record
   code -- the auth code
@@ -185,12 +185,13 @@
   [service record code url parser]
   (let [req (make-token-request service record code url {})
         req (merge {:as :stream} req)
-        _ (log/debug "Requesting access token with request" (pr-str req))
+        _ (log/debug "Requesting access token")
+        _ (log/trace "Access token request: " (pr-str req))
         ^java.io.InputStream res (-> req clj-http.client/request :body)]
     (try
-      (when-let [params (parser res)]
-        (log/trace "Activating record with params" (pr-str params))
-        (activate-record record params))
+      (when-let [values (parser res)]
+        (log/trace "Activating record with parsed values" (pr-str values))
+        (activate-record record values))
       (finally
         (try
           (.close res)

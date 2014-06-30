@@ -9,9 +9,9 @@
              :github {:plugins [[codox "0.6.4"]]
                       :codox
                       {:src-dir-uri
-                       "http://github.com/eightnotrump/clearley/blob/master",
-                       :src-linenum-anchor-prefix "L"
-                       :exclude [qarth.support]
+                       "http://github.com/eightnotrump/qarth/blob/master",
+                       :src-linenum-anchor-prefix "L",
+                       :exclude [qarth.support],
                        :output-dir "doc/codox"}}
              :debug {:dependencies [[log4j/log4j "1.2.17"]]}}
   :aliases {"example" ["trampoline" "with-profile" "example" "run" "-m"]

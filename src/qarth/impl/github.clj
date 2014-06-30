@@ -16,6 +16,6 @@
 
 (defmethod oauth/id :github.com
   [requestor]
-  ; TODO maybe with open macro?
-  (with-open [body (:body (requestor {:url "https://api.github.com/user"}))]
-    (-> body clojure.java.io/reader cheshire.core/parse-stream (get "id"))))
+  (oauth/with-resp-reader
+    [body requestor {:url "https://api.github.com/user"}]
+    (-> body cheshire.core/parse-stream (get "id"))))

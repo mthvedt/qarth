@@ -31,12 +31,10 @@
   "Get an auth requestor from a Friend-authenticated request and a service."
   [req service]
   (if-let [r (auth-record req)]
-    ; TODO test oauth activeness
-    (if true
-      (oauth/requestor service r))))
+    (oauth/requestor service r)))
 
-(defn workflow
-  "Creates a Friend workflow using a Qarth service.
+(defn oauth-workflow
+  "Creates a Friend  using a Qarth service.
 
   Required arguments:
   service -- the auth service
@@ -59,9 +57,6 @@
   Failure also logs an exception and clears the current auth record.
 
   Exceptions are logged and treated as auth failures."
-  ; TODO options:
-  ; triple redirect
-  ; referer checking
   [{:keys [service key auth-url credential-fn redirect-on-auth?
            login-url login-uri login-failure-handler] :as params}]
   (fn [{ring-sesh :session :as req}]
@@ -92,6 +87,7 @@
                                                   (:login-url auth-config)
                                                   (:login-uri auth-config)))
                                             :session (:session req))))]
+          (log/debug "Reached Friend OAuth workflow at url " (:url req))
           (let [resp
                 ((qarth-ring/omni-handler {:service service
                                            :success-handler success-handler

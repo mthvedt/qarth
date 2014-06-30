@@ -1,7 +1,8 @@
 (ns qarth.oauth
   "Base fns for OAuth and OAuth-style interactive auth services.
   You can also define your own auth implementations--see the docs."
-  ; TODO request is active?
+  ; TODO get rid of .coms? maybe use ns?
+  ; or the 'requirement requirement'
   (require qarth.auth
            [qarth.support :as s]
            [qarth.oauth.lib :as lib]
@@ -39,6 +40,10 @@
            [k (build (merge options {:type k} v))]))})
 
 (defmethod build :oauth [x] x)
+
+(defmethod build :any [{type :type}]
+  (throw (RuntimeException. (str "No implementation for type " type
+                                 ". Did you require the appropriate namespace?"))))
 
 (defmulti new-record
   "Multimethod. Usage:
@@ -86,8 +91,7 @@
   (activate service record auth-code)
   Takes a new auth record and a auth-code, and creates an active auth record.
   If activation fails, can return nil or optionally
-  throw an Exception of some kind.
-  Idempotent--can be used on an already activated record."
+  throw an Exception of some kind."
   s/type-first :hierarchy s/h)
 
 (defmethod activate :multi
@@ -99,6 +103,16 @@
   [{access-url :access-url :as service} record auth-code]
   (lib/do-activate service record auth-code access-url lib/v2-form-parser))
 
+(defmulti active?
+  "Multimethod. Usage:
+  (active? service record)
+  True if a record is active (authenticated and usable), false otherwise."
+  s/type-first :hierarchy s/h)
+
+(defmethod active? :oauth
+  [_ {access-token :access-token}]
+  (if access-token true false))
+
 ; TODO support exception toggling
 (defmulti requestor
   "Multimethod. Usage:
@@ -106,6 +120,9 @@
     (r opts))
 
   Returns a fn that can be used to make requests to the auth service.
+  The requestor works similarly to the Clojure library clj-http.
+  If the record is inactive (perhaps it expired or was never activated),
+  throws a Slingshot exception {::qarth.auth/unauthorized true}.
 
   Mandatory opt:
   :url -- the request URL
@@ -145,7 +162,23 @@
           (clj-http.client/request
             (assoc-in req [param-key :access_token] access-token))))
       assoc :type type)
-    (throw (IllegalArgumentException. "Record is not active"))))
+    (qarth.auth/unauthorized "Record is not active")))
+
+(defn resp-reader
+  "Get a reader from a response map. Make sure to close and/or fully read it."
+  [req]
+  (-> req :body clojure.java.io/reader))
+
+(defmacro with-resp-reader [[sym requestor m] & body]
+  "Executes (requestor m), gets a reader from the body, binds it to the given sym,
+  and closes the reader when done."
+  `(let [~sym (resp-reader (~requestor ~m))]
+     (try
+       ~@body
+       (finally
+         (try
+           (.close ~sym)
+           (catch Exception ~'_))))))
 
 (defmulti id
   "Multimethod. Optional. Usage:

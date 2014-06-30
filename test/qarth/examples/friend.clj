@@ -1,20 +1,20 @@
 (ns qarth.examples.friend
   (require (qarth [oauth :as oauth]
                   util friend)
-           qarth.impl.yahoo
+           qarth.impl.github
            cemerick.friend
            compojure.handler
-           ring.util.response
            ring.adapter.jetty)
   (use compojure.core))
 
+; TODO update readme
 (def conf (qarth.util/read-resource "keys.edn"))
 
-(def service (oauth/build (assoc (:yahoo.com conf)
-                                 :type :yahoo.com
+(def service (oauth/build (assoc (:github.com conf)
+                                 :type :github.com
                                  :callback "http://localhost:3000/login")))
 
-(def workflow (qarth.friend/workflow {:service service}))
+(def workflow (qarth.friend/oauth-workflow {:service service}))
 
 (defroutes app
   (GET "/" req

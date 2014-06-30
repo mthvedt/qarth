@@ -16,5 +16,6 @@
 
 (defmethod oauth/id :facebook.com
   [requestor]
-  (with-open [body (:body (requestor {:url "https://graph.facebook.com/me"}))]
-    (-> body clojure.java.io/reader cheshire.core/parse-stream (get "id"))))
+  (oauth/with-resp-reader
+    [body requestor {:url "https://graph.facebook.com/me"}]
+    (-> body cheshire.core/parse-stream (get "id"))))

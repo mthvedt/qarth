@@ -15,9 +15,9 @@
                            :options {:callback "http://localhost:3000/auth"}}))
 
 (def workflow
-  (qarth.friend/workflow {:service service}))
+  (qarth.friend/oauth-workflow {:service service}))
 
-; TODO better errors on missing auth service
+; TODO better errors on missing auth service...
 (defroutes app
   (cemerick.friend/logout
     (GET "/login" _
