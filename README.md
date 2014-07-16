@@ -4,42 +4,22 @@
 [qarth "0.1.0-SNAPSHOT"]
 ```
 
-For managing OAuth without setting your hair on fire. Features Friend integration.
+Qarth is a polymorphic facade for OAuth that satisfies the 99% use case:
+to fetch, track, and use credentials from multiple providers. The basic Qarth flow
+is three lines of code plus configuration. Features Friend integration.
 
-## Overview
-
-There are several good OAuth libraries for Clojure,
-but the OAuth spec is both simple and incomplete, such that
-that low-level libraries are barely more useful than doing HTTP calls yourself.
-Many OAuth providers have extra quirks and off-spec behavior.
-(So far, I haven't found an OAuth provider
-that is even 100% compatible with the spec.)
-
-Qarth is a polymorphic facade using Clojure multilmethods
-that satisfies the 99% use case:
-to fetch, track, and use permissions from multiple providers.
-Authenticate users in three lines of code plus configuration[1].
-
-[1] Additional lines of code may apply.
-
-Qarth also offers the following features:
+## Bullet points
 
 * Zero-effort [Friend](https://github.com/cemerick/friend) workflows.
-* Straightforward functional design. No "easy" tricks or hacks. No stupid defaults.
+* Straightforward functional design.
 * Polymorphic OAuth requests--support any providers,
 or multiple providers at once, with no
 additional effort. Hides the quirks and off-spec behavior of each OAuth provider.
+* Multimethods for grabbing user IDs from different providers.
 * Comes with implementations for Github, Yahoo!, Facebook, and Google.
-* Standard interface with generic implementations for OAuth2
+* Standard interface with generic implementations for OAuth2 and
 [Scribe](https://github.com/fernandezpablo85/scribe-java).
 Add your own OAuth provider by implementing as few as one method.
-* Multimethods for grabbing user IDs from different providers.
-
-## TODO list
-
-* General 'strategies' to allow login without Friend...
-* Multimethods for email, userinfo, &c
-* More documentation!
 
 ### A basic configuration
 
@@ -60,10 +40,11 @@ from a configuration file.
 ### A Friend app
 
 Temporary per-user credentials are stored in auth records.
-Auth records are readable and writable maps of data
-and can be stored in cookies, sessions, databases, Friend credentials, etc.
+Auth records are ordinary Clojure maps
+and can be stored in cookies, sessions, databases, Friend credentials, &c.
 
 ```clojure
+; All you need to create a Qarth workflow is a configured auth service.
 (def workflow (qarth.friend/oauth-workflow {:service service}))
 
 (defroutes app
@@ -142,6 +123,8 @@ of the options that :clj-http supports. They return Ring-style response maps.
           "<p><a href=\"/auth?service=yahoo.com\">Login with Yahoo!</p>"
           "<p><a href=\"/auth?service=github.com\">Login with Github</p>"
           "</body></html>"))
+
+; No further 'extra work' is required.
 ```
 
 ### A basic Ring app
@@ -150,9 +133,8 @@ TODO
 
 ### Using OAuth v2
 
-Qarth has a set of default multimethods for OAuth v2.
-For any compliant implementation that returns form-encoded responses[2],
-all you need to do is something like this:
+Qarth has a set of default multimethods for OAuth v2 with form-encoded responses†.
+They require only a :request-url and :access-url.
 
 ```clojure
 (def conf {:type :oauth
@@ -161,18 +143,18 @@ all you need to do is something like this:
 (def service (oauth/build conf))
 ```
 
-In fact, this is exactly how
+This is how
 [Facebook](https://github.com/mthvedt/qarth/blob/master/src/qarth/impl/facebook.clj)
 and [Github](https://github.com/mthvedt/qarth/blob/master/src/qarth/impl/github.clj)
 are implemented.
 
 You can also override individual multimethods, as seen in the
 [Google](https://github.com/mthvedt/qarth/blob/master/src/qarth/impl/google.clj)
-implementation (which uses JSON and JWTs instead of form encoding).
+implementation, which uses JSON and JWTs instead of form encoding in the responses.
 
-Many useful fns can be found in qarth.oauth.lib [TODO LINK].
+Useful fns for implemetnations can be found in [qarth.oauth.lib](https://mthvedt.github.io/qarth/doc/codox/qarth.oauth.lib.html).
 
-[2] The OAuth2 spec specifies JSON-encoded responses. However,
+† The OAuth v2 spec specifies JSON-encoded responses. However,
 it seems to be routine not to follow that part of the spec.
 
 ### Using Scribe
@@ -202,19 +184,13 @@ https://github.com/mthvedt/qarth/blob/master/src/qarth/impl/yahoo.clj.
 
 TODO
 
-### More examples
+### More examples and documentation
 
 See https://github.com/mthvedt/qarth/tree/master/test/qarth/examples.
 
-### Details
+[API docs](http://mthvedt.github.io/qarth/doc/codox)
 
-TODO generate API docs.
-
-[API docs](http://mthvedt.github.io/qarth/codox)
-
-TODO write more about extending Qarth.
-
-Implementations you can study are in
+Implementations can be found in
 https://github.com/mthvedt/qarth/tree/master/src/qarth/impl.
 
 ## Implementations included
@@ -222,7 +198,13 @@ https://github.com/mthvedt/qarth/tree/master/src/qarth/impl.
 Qarth includes specific implementations for Facebook, Github, Yahoo, and Google.
 Qarth includes generic, extensible implementations for OAuth V2 and Scribe.
 
-For more, see the codox or examples. TODO CODOX
+For more, see the codox or examples.
+
+## TODO
+
+* General 'strategies' to allow login without Friend...
+* Multimethods for email, userinfo, &c
+* More documentation!
 
 ## Logging
 

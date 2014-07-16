@@ -11,7 +11,7 @@
                       {:src-dir-uri
                        "http://github.com/eightnotrump/qarth/blob/master",
                        :src-linenum-anchor-prefix "L",
-                       :exclude [qarth.support],
+                       :exclude [qarth.support qarth.ring],
                        :output-dir "doc/codox"}}
              :debug {:dependencies [[log4j/log4j "1.2.17"]]}}
   :aliases {"example" ["trampoline" "with-profile" "example" "run" "-m"]
