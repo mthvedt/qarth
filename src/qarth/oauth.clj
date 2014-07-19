@@ -180,6 +180,8 @@
            (.close ~sym)
            (catch Exception ~'_))))))
 
+; TODO fully read response body
+; TODO no requires
 (defmulti id
   "Multimethod. Optional. Usage:
   (id requestor)

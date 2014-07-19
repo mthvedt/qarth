@@ -9,6 +9,7 @@
            [clojure.java.io :as io]
            clojure.string))
 
+; TODO support.derive, and document
 (auth/derive :oauth)
 
 (defn csrf-token

@@ -41,8 +41,6 @@ from a configuration file.
 (def service (oauth/build conf))
 ```
 
-TODO no requires
-
 ### A Friend app
 
 Temporary per-user credentials are stored in auth records.
@@ -104,8 +102,6 @@ Requestors support many (or all! depending on implementation)
 of the options that :clj-http supports. They return Ring-style response maps.
 (As is usual in web APIs, make sure to fully read and/or close the response body.)
 
-TODO fully read response body
-
 ### Using multiple services
 
 ```clojure
@@ -134,10 +130,6 @@ TODO fully read response body
 
 ; No further 'extra work' is required.
 ```
-
-### A basic Ring app
-
-TODO
 
 ### Using OAuth v2
 
@@ -190,7 +182,15 @@ https://github.com/mthvedt/qarth/blob/master/src/qarth/impl/yahoo.clj.
 
 ### Roll your own multimethods
 
-TODO
+Qarth multimethods dispatch on `qarth.support/h`. Requestors
+already have `:type` metadata on them. With this it's easy to roll
+your own multimethods:
+
+```clojure
+(defmulti my-method
+  "my-documentation"
+  type :hierarchy qarth.support/h)
+```
 
 ### More examples and documentation
 
