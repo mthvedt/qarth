@@ -4,9 +4,11 @@
 [qarth "0.1.0-SNAPSHOT"]
 ```
 
-Qarth is a polymorphic facade for OAuth that satisfies the 99% use case:
-to fetch, track, and use credentials from multiple providers. The basic Qarth flow
-is three lines of code plus configuration. Features Friend integration.
+Qarth is a simple polymorphic facade for OAuth that satisfies the 99% use case:
+to fetch, track, and use credentials from multiple providers. Qarth abstracts over OAuth flow details and differences between OAuth providers.
+
+The basic Qarth flow is three lines of code plus configuration.
+Features zero-effort Friend integration.
 
 ## Bullet points
 
@@ -14,7 +16,9 @@ is three lines of code plus configuration. Features Friend integration.
 * Straightforward functional design.
 * Polymorphic OAuth requests--support any providers,
 or multiple providers at once, with no
-additional effort. Hides the quirks and off-spec behavior of each OAuth provider.
+additional effort.
+* Hides the quirks and off-spec behavior of each OAuth provider.
+No more documentation-chasing.
 * Multimethods for grabbing user IDs from different providers.
 * Comes with implementations for Github, Yahoo!, Facebook, and Google.
 * Standard interface with generic implementations for OAuth2 and
@@ -36,6 +40,8 @@ from a configuration file.
            :api-secret "my-secret"})
 (def service (oauth/build conf))
 ```
+
+TODO no requires
 
 ### A Friend app
 
@@ -84,19 +90,21 @@ Qarth's basic facade authenticates users in two multimethod calls.
 
 ### Make arbitrary requests
 
-A 'requestor', in addition to being an object with multimethods,
+A requestor, in addition to being an object with multimethods,
 is a vanilla fn that can be used to make arbitrary HTTP requests.
 
 ```clojure
-(def requestor (oauth/requestor service record))
-(def user-guid (-> (requestor {:url "https://graph.facebook.com/me"})
-				:body slurp clojure.data.json/read-str (get :id)))
+(def my-requestor (oauth/requestor service record))
+(def user-guid (-> (my-requestor {:url "https://graph.facebook.com/me"})
+                                  :body slurp clojure.data.json/read-str (get :id)))
 (println "Your user GUID is " user-guid)
 ```
 
 Requestors support many (or all! depending on implementation)
 of the options that :clj-http supports. They return Ring-style response maps.
 (As is usual in web APIs, make sure to fully read and/or close the response body.)
+
+TODO fully read response body
 
 ### Using multiple services
 
@@ -214,6 +222,10 @@ and TRACE to see very detailed info on everything that's happening.
 
 TRACE logging logs auth records, if that is a security concern. It does not
 log auth services or any private information contained therein.
+
+## Finally…
+
+Qarth is a new library, so please let me know about any bugs or difficulties you encounter. My Freenode name is mthvedt and my email is mike.thvedt@gmail.com.
 
 ## License
 

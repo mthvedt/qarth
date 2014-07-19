@@ -63,7 +63,9 @@
     (let [auth-config (merge (::friend/auth-config req) params)
           auth-url (or auth-url (:auth-url auth-config))]
       (if (= (ring.util.request/path-info req) auth-url)
-        (let [redirect-on-auth? (or redirect-on-auth?
+        (let [
+              ; Friend-specific configuration
+              redirect-on-auth? (or redirect-on-auth?
                                     (:redirect-on-auth? auth-config) true)
               credential-fn (or credential-fn (:credential-fn auth-config))
               success-handler (fn [{{record ::oauth/record} :session}]
@@ -71,10 +73,6 @@
                                                 {::oauth/record record
                                                  :identity ::qarth.oauth/anonymous}
                                                 redirect-on-auth?))
-              key (or key (:key auth-config))
-              req (if key
-                    (assoc-in req [:query-params "service"] key)
-                    req)
               login-failure-handler (or login-failure-handler
                                         (get auth-config :login-failure-handler)
                                         (fn [req]
@@ -86,7 +84,12 @@
                                                   ; 'the configured login-url'
                                                   (:login-url auth-config)
                                                   (:login-uri auth-config)))
-                                            :session (:session req))))]
+                                            :session (:session req))))
+              ; Our configuration
+              key (or key (:key auth-config))
+              req (if key
+                    (assoc-in req [:query-params "service"] key)
+                    req)]
           (log/debug "Reached Friend OAuth workflow at url " (:url req))
           (let [resp
                 ((qarth-ring/omni-handler {:service service
