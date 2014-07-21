@@ -1,12 +1,10 @@
 (ns qarth.impl.github
   "A Github oauth impl. Type is github.com."
-  (require [qarth.oauth :as oauth]
-           qarth.auth
-           clj-http.client
-           cheshire.core
-           clojure.java.io))
+  (require (qarth [oauth :as oauth])
+           qarth.impl.oauth-v2
+           cheshire.core))
 
-(qarth.auth/derive :github.com :oauth)
+(oauth/derive :github.com :oauth)
 
 (defmethod oauth/build :github.com
   [service]

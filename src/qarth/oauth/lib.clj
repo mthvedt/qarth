@@ -1,6 +1,6 @@
 (ns qarth.oauth.lib
   "Helper fns for OAuth implementations."
-  (require [qarth.auth :as auth]
+  (require (qarth [core :as core])
            clj-http.client
            cheshire.core
            ring.util.codec
@@ -8,9 +8,6 @@
            [clojure.tools.logging :as log]
            [clojure.java.io :as io]
            clojure.string))
-
-; TODO support.derive, and document
-(auth/derive :oauth)
 
 (defn csrf-token
     "Returns a random base-64 encoded 12-byte CSRF token."
@@ -62,7 +59,8 @@
   "Helper fn for implementors to extract an auth code from a Ring request.
   Looks for the params in the givne Ring request.
   Returns the found auth code, nil if no state or code was found,
-  or throws an exception if an error or token mismatch were found.
+  or throws a ::qarth.core/unauthorized exception
+  if an error or token mismatch were found.
 
   our-state -- the state token in the record
   req -- the request
@@ -81,12 +79,12 @@
     (cond
       error (-> "OAuth access request returned error"
               (str " " error)
-              (ex-info {::auth/status 400}) throw)
+              core/unauthorized)
       (not (or their-state code)) nil
       (= their-state our-state) code
       true (-> "Given state token %s didn't match our state token %s"
              (format their-state our-state)
-             (ex-info {::auth/status 400}) throw))))
+             core/unauthorized))))
 
 (defn- make-token-request
   "Helper fn for OAuth v2 services. Creates a Ring HTTP POST

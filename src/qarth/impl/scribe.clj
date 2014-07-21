@@ -3,8 +3,7 @@
   The build method requires a Scribe OAuth provider class, under the key
   :provider."
   (require (qarth [oauth :as oauth]
-                  [util :as util]
-                  auth)
+                  [util :as util])
            [qarth.oauth.lib :as lib]
            clojure.java.io
            clojure.string
@@ -13,7 +12,7 @@
           [org.scribe.model OAuthRequest Token]
           [org.scribe.oauth OAuthService]))
 
-(qarth.auth/derive :scribe :oauth)
+(qarth.oauth/derive :scribe :oauth)
 
 (defn scribe-verb-from-opts
   [opts]
@@ -57,7 +56,7 @@
   that builds a Scribe service with the provided type and api."
   [type api]
   `(do
-     (qarth.auth/derive ~type :scribe)
+     (qarth.oauth/derive ~type :scribe)
      (defmethod oauth/build ~type
        [spec#]
        (-> spec#

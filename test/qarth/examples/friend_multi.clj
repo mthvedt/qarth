@@ -4,6 +4,7 @@
            (qarth.impl yahoo facebook github google)
            cemerick.friend
            compojure.handler
+           ring.util.response
            ring.adapter.jetty)
   (use compojure.core)
   (:gen-class))
@@ -15,13 +16,16 @@
                            :options {:callback "http://localhost:3000/auth"}}))
 
 (def workflow
-  (qarth.friend/oauth-workflow {:service service}))
+  (qarth.friend/oauth-workflow {:service service
+                                :login-failure-handler
+                                (fn [_] (ring.util.response/redirect
+                                          "/login?exception=true"))}))
 
-; TODO better errors on missing auth service...
 (defroutes app
   (cemerick.friend/logout
-    (GET "/login" _
+    (GET "/login" [exception]
          (str "<html><head/><body>"
+              (if exception "Oops... there was a problem logging you in" "")
               "<p><a href=\"/auth?service=yahoo.com\">Login with Yahoo!</p>"
               "<p><a href=\"/auth?service=facebook.com\">Login with Facebook</p>"
               "<p><a href=\"/auth?service=github.com\">Login with Github</p>"

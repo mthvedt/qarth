@@ -7,14 +7,17 @@
            ring.adapter.jetty)
   (use compojure.core))
 
-; TODO update readme
 (def conf (qarth.util/read-resource "keys.edn"))
 
 (def service (oauth/build (assoc (:github.com conf)
                                  :type :github.com
                                  :callback "http://localhost:3000/login")))
 
-(def workflow (qarth.friend/oauth-workflow {:service service}))
+(def workflow
+  (qarth.friend/oauth-workflow {:service service
+                                :login-failure-handler
+                                (fn [_] (ring.util.response/redirect
+                                          "/login?exception=true"))}))
 
 (defroutes app
   (GET "/" req

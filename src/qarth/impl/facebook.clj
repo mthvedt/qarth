@@ -1,12 +1,10 @@
 (ns qarth.impl.facebook
   "A Facebook oauth impl. Type is facebook.com."
-  (require [qarth.oauth :as oauth]
-           qarth.auth
-           clj-http.client
-           cheshire.core
-           clojure.java.io))
+  (require (qarth [oauth :as oauth])
+           qarth.impl.oauth-v2
+           cheshire.core))
 
-(qarth.auth/derive :facebook.com :oauth)
+(oauth/derive :facebook.com :oauth)
 
 (defmethod oauth/build :facebook.com
   [service]

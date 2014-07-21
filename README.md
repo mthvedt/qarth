@@ -5,25 +5,27 @@
 ```
 
 Qarth is a simple polymorphic facade for OAuth that satisfies the 99% use case:
-to fetch, track, and use credentials from multiple providers. Qarth abstracts over OAuth flow details and differences between OAuth providers.
+to fetch, track, and use credentials from multiple providers.
 
-The basic Qarth flow is three lines of code plus configuration.
+The basic Qarth flow is three lines of code plus configuration and works the same
+for any provider. You can also combine multiple providers into a single service.
 Features zero-effort Friend integration.
 
 ## Bullet points
 
-* Zero-effort [Friend](https://github.com/cemerick/friend) workflows.
 * Straightforward functional design.
-* Polymorphic OAuth requests--support any providers,
-or multiple providers at once, with no
-additional effort.
+* Polymorphic OAuth requests--support any provider you wish. Using multiple providers
+requires changing one line of code. Allow your users to log in with several services,
+with no additional effort from you.
+* Zero-effort [Friend](https://github.com/cemerick/friend) workflows.
 * Hides the quirks and off-spec behavior of each OAuth provider.
-No more documentation-chasing.
 * Multimethods for grabbing user IDs from different providers.
 * Comes with implementations for Github, Yahoo!, Facebook, and Google.
 * Standard interface with generic implementations for OAuth2 and
 [Scribe](https://github.com/fernandezpablo85/scribe-java).
 Add your own OAuth provider by implementing as few as one method.
+
+## Using Qarth
 
 ### A basic configuration
 
@@ -72,20 +74,6 @@ and can be stored in cookies, sessions, databases, Friend credentials, &c.
     compojure.handler/site))
 ```
 
-### A command-line app
-
-Qarth's basic facade authenticates users in two multimethod calls.
-
-```clojure
-; Assume 'service is an OAuth service with no callback
-(def record (oauth/new-record service))
-(println ("Auth url: " (:url record)))
-; Compliant OAuth implementations will show the user an authroization code.
-(print "Enter token: ") (flush)
-(def record (oauth/activate service record (clojure.string/trim (read-line))))
-(println "Your unique user ID is " (->> record (oauth/requestor service) oauth/id))
-```
-
 ### Make arbitrary requests
 
 A requestor, in addition to being an object with multimethods,
@@ -100,7 +88,7 @@ is a vanilla fn that can be used to make arbitrary HTTP requests.
 
 Requestors support many (or all! depending on implementation)
 of the options that :clj-http supports. They return Ring-style response maps.
-(As is usual in web APIs, make sure to fully read and/or close the response body.)
+(As is usual in Java, remember to always close your streams at the end.)
 
 ### Using multiple services
 
@@ -131,7 +119,27 @@ of the options that :clj-http supports. They return Ring-style response maps.
 ; No further 'extra work' is required.
 ```
 
-### Using OAuth v2
+### A command-line app
+
+Qarth's basic facade authenticates users in two multimethod calls.
+
+```clojure
+; Assume 'service is an OAuth service with no callback
+(def record (oauth/new-record service))
+(println ("Auth url: " (:url record)))
+; Compliant OAuth implementations will show the user an authorization code.
+(print "Enter token: ") (flush)
+(def record (oauth/activate service record (clojure.string/trim (read-line))))
+(println "Your unique user ID is " (->> record (oauth/requestor service) oauth/id))
+```
+
+### Examples
+
+Examples live in [test/qarth/examples](https://github.com/mthvedt/qarth/tree/master/test/qarth/examples). You can run any example file with `lein example <example-class>`. To run them you need to put a `keys.edn` file in [test-resources](https://github.com/mthvedt/qarth/tree/master/test-resources) (see [https://github.com/mthvedt/qarth/blob/master/test-resources/keys-example.edn](this example file)).
+
+## Extending Qarth
+
+### Roll your own OAuth v2 implementation
 
 Qarth has a set of default multimethods for OAuth v2 with form-encoded responses†.
 They require only a :request-url and :access-url.
@@ -152,12 +160,12 @@ You can also override individual multimethods, as seen in the
 [Google](https://github.com/mthvedt/qarth/blob/master/src/qarth/impl/google.clj)
 implementation, which uses JSON and JWTs instead of form encoding in the responses.
 
-Useful fns for implemetnations can be found in [qarth.oauth.lib](https://mthvedt.github.io/qarth/doc/codox/qarth.oauth.lib.html).
+Useful fns for implementations can be found in [qarth.oauth.lib](https://mthvedt.github.io/qarth/doc/codox/qarth.oauth.lib.html).
 
 † The OAuth v2 spec specifies JSON-encoded responses. However,
 it seems to be routine not to follow that part of the spec.
 
-### Using Scribe
+### Roll your own Scribe implementation
 
 Qarth has a generic implementation for
 [Scribe](https://github.com/fernandezpablo85/scribe-java),
@@ -192,6 +200,10 @@ your own multimethods:
   type :hierarchy qarth.support/h)
 ```
 
+For instance, you could write some methods to grab user info
+(friends lists, name, &c) from various
+providers in a polymorphic way, no code tricks required.
+
 ### More examples and documentation
 
 See https://github.com/mthvedt/qarth/tree/master/test/qarth/examples.
@@ -206,10 +218,12 @@ https://github.com/mthvedt/qarth/tree/master/src/qarth/impl.
 Qarth includes specific implementations for Facebook, Github, Yahoo, and Google.
 Qarth includes generic, extensible implementations for OAuth V2 and Scribe.
 
-For more, see the codox or examples.
+For more, see the [codox](http://mthvedt.github.io/qarth/doc/codox)
+or [examples](https://github.com/mthvedt/qarth/tree/master/test/qarth/examples).
 
 ## TODO
 
+* Record refresh and expiration. Currently you must do this manually.
 * General 'strategies' to allow login without Friend...
 * Multimethods for email, userinfo, &c
 * More documentation!
@@ -225,10 +239,10 @@ log auth services or any private information contained therein.
 
 ## Finally…
 
-Qarth is a new library, so please let me know about any bugs or difficulties you encounter. My Freenode name is mthvedt and my email is mike.thvedt@gmail.com.
+Qarth is a new library, so please let me know about any bugs or difficulties you encounter. My Freenode IRC name is mthvedt and my email is mike.thvedt@gmail.com.
 
 ## License
 
-Copyright © 2014 Zimilate, Inc., Mike Thvedt
+Copyright © 2014 [Zimilate, Inc.](http://zimilate.com), Mike Thvedt
 
 Distributed under the Eclipse Public License, the same as Clojure.

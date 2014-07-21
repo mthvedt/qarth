@@ -1,6 +1,8 @@
 (ns qarth.ring
-  "Low-level Ring fns to use with Qarth. This lib is under construction."
-  (require [qarth.oauth :as oauth]
+  "Low-level Ring fns to use with Qarth.
+  This lib is in a state of flux,
+  so you probably shouldn't refer to it in your code."
+  (require (qarth [oauth :as oauth] [core :as core])
            ring.util.response
            [clojure.tools.logging :as log])
   (:refer-clojure :exclude [get set]))
@@ -12,11 +14,16 @@
   If a :service query param is present, constructs an auth record from
   a multiservice with the specified key."
   ([service]
+   ; TODO when the callback hits here with no service,
+   ; causes an error
    (fn [{session :session params :query-params}]
      (log/trace "New record redirect handler")
      (let [record (if-let [key (clojure.core/get params "service")]
                     (oauth/new-record service (keyword key))
-                    (oauth/new-record service))
+                    (if (= (:type service) :multi)
+                      (throw (IllegalArgumentException.
+                               "Multi-services require a serivce parameter"))
+                      (oauth/new-record service)))
            session (assoc session ::oauth/record record)]
        (log/debug "Installing in session new oauth record and redirecting"
                   (pr-str record))
@@ -63,8 +70,7 @@
         (do
           (log/debug "Got active record" (pr-str record))
           (set request record))
-        (throw (ex-info (str "Could not activate record with token " v)
-                        {::qarth.auth/status 400}))))))
+        (core/unauthorized (str "Could not activate record with token " v))))))
 
 (defn auth-callback-handler
   "Returns a Ring handler that handles an auth callback request,
@@ -84,8 +90,7 @@
             (fallback-handler req))
           (-> req :params pr-str
             (str "Could not get auth code with params: ")
-            (ex-info {::qarth.auth/status 400})
-            throw)))
+            core/unauthorized)))
       (catch Exception e
         (log/debug "Auth callback handler caught exception" (.getMessage e))
         (exception-handler req e)))))
@@ -137,4 +142,7 @@
         (if (oauth/active? service record)
           (success-handler req)
           (callback-handler req))
-        (new-record-handler req)))))
+        (try 
+          (new-record-handler req)
+          (catch Exception e
+            (exception-handler req e)))))))

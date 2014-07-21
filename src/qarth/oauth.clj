@@ -2,14 +2,18 @@
   "Base fns for OAuth and OAuth-style interactive auth services.
   You can also define your own auth implementations--see the docs."
   ; TODO get rid of .coms? maybe use ns?
-  ; or the 'requirement requirement'
-  (require qarth.auth
-           [qarth.support :as s]
-           [qarth.oauth.lib :as lib]
-           clj-http.client
-           qarth.oauth.lib))
+  ; TODO the 'requirement requirement'?
+  (require [qarth.support :as s]
+           [qarth.oauth.lib :as lib])
+  (:refer-clojure :exclude [derive]))
 
-(qarth.auth/derive :multi :oauth)
+(defn derive
+  "Add a type to the Qarth hierarchy."
+  ([type] (derive type :any))
+  ([type parent] (swap! s/h clojure.core/derive type parent)))
+
+(derive :oauth)
+(derive :multi :oauth)
 
 (defmulti build 
   "Multimethod. Usage:
@@ -39,8 +43,6 @@
          (for [[k v] services]
            [k (build (merge options {:type k} v))]))})
 
-(defmethod build :oauth [x] x)
-
 (defmethod build :any [{type :type}]
   (throw (RuntimeException. (str "No implementation for type " type
                                  ". Did you require the appropriate namespace?"))))
@@ -58,10 +60,6 @@
   :url -- optional, a callback URL for interactive auth
   other various implementation-specific keys"
   s/type-first :hierarchy s/h)
-
-(defmethod new-record :oauth
-  [{request-url :request-url :as service}]
-  (lib/do-new-record service request-url {}))
 
 (defmethod new-record :multi
   ([service] (throw (IllegalArgumentException. "Missing OAuth service type")))
@@ -82,10 +80,6 @@
   [service {key :key record :record} req]
   (extract-code (get-in service [:services key]) record req))
 
-(defmethod extract-code :oauth
-  [_ {state :state} req]
-  (lib/do-extract-code state req :state :code :error))
-
 (defmulti activate
   "Multimethod. Usage:
   (activate service record auth-code)
@@ -99,19 +93,11 @@
   (assoc record :record
          (activate (get-in service [:services key]) subrecord auth-code)))
 
-(defmethod activate :oauth
-  [{access-url :access-url :as service} record auth-code]
-  (lib/do-activate service record auth-code access-url lib/v2-form-parser))
-
 (defmulti active?
   "Multimethod. Usage:
   (active? service record)
   True if a record is active (authenticated and usable), false otherwise."
   s/type-first :hierarchy s/h)
-
-(defmethod active? :oauth
-  [_ {access-token :access-token}]
-  (if access-token true false))
 
 ; TODO support exception toggling
 (defmulti requestor
@@ -122,7 +108,7 @@
   Returns a fn that can be used to make requests to the auth service.
   The requestor works similarly to the Clojure library clj-http.
   If the record is inactive (perhaps it expired or was never activated),
-  throws a Slingshot exception {::qarth.auth/unauthorized true}.
+  throws a Slingshot exception {::qarth.core/unauthorized true}.
 
   Mandatory opt:
   :url -- the request URL
@@ -151,18 +137,6 @@
 (defmethod requestor :multi
   [service {key :key record :record}]
   (requestor (get-in service [:services key]) record))
-
-(defmethod requestor :oauth
-  [_ {access-token :access-token type :type}]
-  (if access-token
-    (vary-meta
-      (fn [req]
-        (let [req (merge {:method :get :as :stream} req)
-              param-key (if (= (:method req) :post) :form-params :query-params)]
-          (clj-http.client/request
-            (assoc-in req [param-key :access_token] access-token))))
-      assoc :type type)
-    (qarth.auth/unauthorized "Record is not active")))
 
 (defn resp-reader
   "Get a reader from a response map. Make sure to close and/or fully read it."

@@ -1,14 +1,13 @@
 (ns qarth.impl.google
   "A Google oauth impl. Type is google.com.
   Default OAuth scope is \"openid email\" (Google requires an OAuth scope)."
-  (require [qarth.oauth :as oauth]
+  (require (qarth [oauth :as oauth])
            [qarth.oauth.lib :as lib]
-           qarth.auth
+           qarth.impl.oauth-v2
            cheshire.core
-           clj-http.client
            clojure.java.io))
 
-(qarth.auth/derive :google.com :oauth)
+(oauth/derive :google.com :oauth)
 
 (defmethod oauth/build :google.com
   [{scope :scope :as service}]

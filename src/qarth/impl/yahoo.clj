@@ -5,7 +5,6 @@
            qarth.impl.scribe
            clojure.data.xml))
 
-; TODO .com?
 (qarth.impl.scribe/extend-scribe :yahoo.com org.scribe.builder.api.YahooApi)
 
 (defmethod oauth/extract-code :yahoo.com
