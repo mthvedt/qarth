@@ -14,6 +14,6 @@
 
 (defmethod oauth/id :github.com
   [requestor]
-  (oauth/with-resp-reader
-    [body requestor {:url "https://api.github.com/user"}]
+  (with-open [body (:body (requestor
+                            {:url "https://api.github.com/user" :as :stream}))]
     (-> body cheshire.core/parse-stream (get "id"))))

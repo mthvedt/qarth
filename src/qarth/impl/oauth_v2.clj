@@ -28,7 +28,7 @@
   (if access-token
     (vary-meta
       (fn [req]
-        (let [req (merge {:method :get :as :stream} req)
+        (let [req (merge {:method :get} req)
               param-key (if (= (:method req) :post) :form-params :query-params)]
           (clj-http.client/request
             (assoc-in req [param-key :access_token] access-token))))

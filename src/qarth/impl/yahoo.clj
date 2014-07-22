@@ -14,6 +14,5 @@
 
 (defmethod oauth/id :yahoo.com
   [requestor]
-  (oauth/with-resp-reader
-    [body requestor {:url "https://social.yahooapis.com/v1/me/guid"}]
+  (with-open [body (requestor {:url "https://social.yahooapis.com/v1/me/guid"})]
     (-> body clojure.data.xml/parse :content first :content first)))

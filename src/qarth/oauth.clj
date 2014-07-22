@@ -121,11 +121,13 @@
   :query-params -- the query parameters
   :headers -- a string->string map
   :follow-redirects -- true or false, default true
+  :as -- coerce to something else, must support at least :stream
 
   Returns a Ring-Style response map containing at least:
   :status -- the status code
   :headers -- the http headers
-  :body -- an InputStream (be sure to read and/or close it when you're done!)
+  :body -- a string or InputStream or something else
+  (if it's an InputStream, be sure to close it when you're done!)
 
   If an exceptional status code happens, throws an Exception instead.
   Other implementations might support more opts and return more stuff.
@@ -143,19 +145,6 @@
   [req]
   (-> req :body clojure.java.io/reader))
 
-(defmacro with-resp-reader [[sym requestor m] & body]
-  "Executes (requestor m), gets a reader from the body, binds it to the given sym,
-  and closes the reader when done."
-  `(let [~sym (resp-reader (~requestor ~m))]
-     (try
-       ~@body
-       (finally
-         (try
-           (.close ~sym)
-           (catch Exception ~'_))))))
-
-; TODO fully read response body
-; TODO no requires
 (defmulti id
   "Multimethod. Optional. Usage:
   (id requestor)

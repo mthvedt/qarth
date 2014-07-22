@@ -87,9 +87,12 @@
 (defmethod oauth/requestor :scribe
   [{^OAuthService service :service service-type :type} {access-token :access-token}]
   (vary-meta
-    (fn [{:keys [url form-params query-params headers body follow-redirects]
+    (fn [{:keys [url form-params query-params headers body follow-redirects as]
           :as opts}]
       (let [req (OAuthRequest. (scribe-verb-from-opts opts) url)]
+        (if-not (contains? #{"string" "stream" nil} (and as (name as)))
+          (throw (UnsupportedOperationException.
+                   (str "Unsupported :as option: " as))))
         (if body
           ; Override body
           (.addPayload req ^String (slurp body))
@@ -107,6 +110,9 @@
                                 (pr-str opts))
                            {::oauth/response-status status})))]
           {:status status
-           :body (.getStream resp)
+           :body (case (and as (name as))
+                   "stream" (.getStream resp)
+                   (nil "string") (with-open [s (.getStream resp)] (slurp s)))
+           ; TODO test headers
            :headers (into {} (.getHeaders resp))})))
     assoc :type service-type))

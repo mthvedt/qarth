@@ -55,6 +55,23 @@ and can be stored in cookies, sessions, databases, Friend credentials, &c.
 
 (defroutes app
   (GET "/" req
+    (cemerick.friend/authorize #{::user}
+      "<html><body>Hello world!</body></html>")))
+
+; To kick off OAuth, redirect users to the :auth-url and Qarth handles the rest.
+; Here the :auth-url is "/login", the default Friend landing page.
+(def app
+  (-> app
+    (cemerick.friend/authenticate {:workflows [workflow] :auth-url "/login"
+                                   :credential-fn #(assoc % :roles [::user])})
+    compojure.handler/site))
+```
+
+You can make requests with the OAuth information stored in the Friend credentials.
+
+```clojure
+(defroutes app
+  (GET "/" req
        (cemerick.friend/authorize
          #{::user}
          ; A requestor uses verified OAuth credentials to make http requests.
@@ -64,14 +81,6 @@ and can be stored in cookies, sessions, databases, Friend credentials, &c.
            (str "<html><body>Hello friend! Your unique user ID is "
                 id
                 "</body></html>")))))
-
-; To kick off OAuth, redirect users to the :auth-url and Qarth handles the rest.
-; Here the :auth-url is "/login", the default Friend landing page.
-(def app
-  (-> app
-    (cemerick.friend/authenticate {:workflows [workflow] :auth-url "/login"
-                                   :credential-fn #(assoc % :roles [::user])})
-    compojure.handler/site))
 ```
 
 ### Make arbitrary requests
@@ -85,6 +94,9 @@ is a vanilla fn that can be used to make arbitrary HTTP requests.
                                   :body slurp clojure.data.json/read-str (get :id)))
 (println "Your user GUID is " user-guid)
 ```
+
+Obviously these are provider-specific, so the use of multimethods is encouraged
+if you want to use multiple providers (see below).
 
 Requestors support many (or all! depending on implementation)
 of the options that :clj-http supports. They return Ring-style response maps.

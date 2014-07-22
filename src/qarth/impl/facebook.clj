@@ -14,6 +14,5 @@
 
 (defmethod oauth/id :facebook.com
   [requestor]
-  (oauth/with-resp-reader
-    [body requestor {:url "https://graph.facebook.com/me"}]
-    (-> body cheshire.core/parse-stream (get "id"))))
+  (-> (requestor {:url "https://graph.facebook.com/me"})
+    :body cheshire.core/parse-stream (get "id")))
