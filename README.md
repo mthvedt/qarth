@@ -14,16 +14,20 @@ Features zero-effort Friend integration.
 ## Bullet points
 
 * Straightforward functional design.
-* Polymorphic OAuth requests--support any provider you wish. Using multiple providers
-requires changing one line of code. Allow your users to log in with several services,
-with no additional effort from you.
+* Polymorphic facade lets you use the same code shape for very different OAuth services.
+Implementations for the basic auth flow can be swapped with no code changes.
+Supports multiple providers at once by adding one line of code.
 * Zero-effort [Friend](https://github.com/cemerick/friend) workflows.
+* Configured via an ordinary Clojure map,
+so you can swap out dev, production, and other alternate configurations.
 * Hides the quirks and off-spec behavior of each OAuth provider.
+Use the same code for all OAuth providers.
 * Multimethods for grabbing user IDs from different providers.
 * Comes with implementations for Github, Yahoo!, Facebook, and Google.
 * Standard interface with generic implementations for OAuth2 and
 [Scribe](https://github.com/fernandezpablo85/scribe-java).
 Add your own OAuth provider by implementing as few as one method.
+* Detailed debug and trace logging.
 
 ## Using Qarth
 
@@ -36,7 +40,7 @@ from a configuration file.
 ```clojure
 (require '[qarth.oauth :as oauth])
 (require 'qarth.impl.facebook)
-(def conf {:type :facebook.com
+(def conf {:type :facebook
            :callback "http://localhost:3000/login"
            :api-key "my-key"
            :api-secret "my-secret"})
@@ -106,26 +110,26 @@ of the options that :clj-http supports. They return Ring-style response maps.
 
 ```clojure
 ; You can define a service containing several sub-services.
-(require '(qarth.impl yahoo github))
+(require 'qarth.impls) ; Require all impls bundled with Qarth.
 (def conf {:type :multi
-           :services {:yahoo.com {:api-key "my-key"
-                                  :api-secret "my-secret"}
-                      :github.com {:api-key "my-key"
-                                   :api-secret "my-secret"}}
+           :services {:yahoo {:api-key "my-key"
+                              :api-secret "my-secret"}
+                      :github {:api-key "my-key"
+                               :api-secret "my-secret"}}
            ; Options applied to all services
            :options {:callback "http://localhost:3000/auth"}})
 (def service (oauth/build conf))
 
 ; Works the same as an ordinary service, except for one thing...
 ; to open a new record takes an extra argument.
-(def record (new-record service :yahoo.com))
+(def record (new-record service :yahoo))
 
 ; You can use Friend by adding an extra ?service= query param.
 ; A basic login page might look like this:
 (GET "/login" _
      (str "<html><head/><body>"
-          "<p><a href=\"/auth?service=yahoo.com\">Login with Yahoo!</p>"
-          "<p><a href=\"/auth?service=github.com\">Login with Github</p>"
+          "<p><a href=\"/auth?service=yahoo\">Login with Yahoo!</p>"
+          "<p><a href=\"/auth?service=github\">Login with Github</p>"
           "</body></html>"))
 
 ; No further 'extra work' is required.
@@ -251,7 +255,7 @@ log auth services or any private information contained therein.
 
 ## Finally…
 
-Qarth is a new library, so please let me know about any bugs or difficulties you encounter. My Freenode IRC name is mthvedt and my email is mike.thvedt@gmail.com.
+Qarth is a new library, so please let me know about any bugs, difficulties, or rough edges you encounter. My Freenode IRC name is mthvedt and my email is mike.thvedt@gmail.com.
 
 ## License
 

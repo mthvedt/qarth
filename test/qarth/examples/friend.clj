@@ -9,8 +9,8 @@
 
 (def conf (qarth.util/read-resource "keys.edn"))
 
-(def service (oauth/build (assoc (:github.com conf)
-                                 :type :github.com
+(def service (oauth/build (assoc (:github conf)
+                                 :type :github
                                  :callback "http://localhost:3000/login")))
 
 (def workflow

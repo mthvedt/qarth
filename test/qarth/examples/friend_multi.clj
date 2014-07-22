@@ -1,7 +1,7 @@
 (ns qarth.examples.friend-multi
   (require (qarth [oauth :as oauth]
                   util friend)
-           (qarth.impl yahoo facebook github google)
+           qarth.impls
            cemerick.friend
            compojure.handler
            ring.util.response
@@ -26,10 +26,10 @@
     (GET "/login" [exception]
          (str "<html><head/><body>"
               (if exception "Oops... there was a problem logging you in" "")
-              "<p><a href=\"/auth?service=yahoo.com\">Login with Yahoo!</p>"
-              "<p><a href=\"/auth?service=facebook.com\">Login with Facebook</p>"
-              "<p><a href=\"/auth?service=github.com\">Login with Github</p>"
-              "<p><a href=\"/auth?service=google.com\">Login with Google</p>"
+              "<p><a href=\"/auth?service=yahoo\">Login with Yahoo!</p>"
+              "<p><a href=\"/auth?service=facebook\">Login with Facebook</p>"
+              "<p><a href=\"/auth?service=github\">Login with Github</p>"
+              "<p><a href=\"/auth?service=google\">Login with Google</p>"
               "</body></html>")))
   (GET "/" req
        (cemerick.friend/authorize

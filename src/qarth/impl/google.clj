@@ -1,5 +1,5 @@
 (ns qarth.impl.google
-  "A Google oauth impl. Type is google.com.
+  "A Google oauth impl. Type is :google.
   Default OAuth scope is \"openid email\" (Google requires an OAuth scope)."
   (require (qarth [oauth :as oauth])
            [qarth.oauth.lib :as lib]
@@ -7,9 +7,9 @@
            cheshire.core
            clojure.java.io))
 
-(oauth/derive :google.com :oauth)
+(oauth/derive :google :oauth)
 
-(defmethod oauth/build :google.com
+(defmethod oauth/build :google
   [{scope :scope :as service}]
   (assoc service
          :scope (or scope "openid email")
@@ -26,11 +26,11 @@
      ; Not expires-in
      :expires exp}))
 
-(defmethod oauth/activate :google.com
+(defmethod oauth/activate :google
   [service record code]
   (lib/do-activate service record code (:access-url service) google-parser))
 
-(defmethod oauth/requestor :google.com
+(defmethod oauth/requestor :google
   [service record]
   (let [super (oauth/requestor (assoc service :type :oauth) record)]
     (vary-meta
@@ -39,8 +39,8 @@
         (if-let [r (if special-key (record special-key))]
           r
           (super req)))
-      assoc :type :google.com)))
+      assoc :type :google)))
 
-(defmethod oauth/id :google.com
+(defmethod oauth/id :google
   [requestor]
   (requestor {::special :userid}))

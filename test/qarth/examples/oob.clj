@@ -8,7 +8,7 @@
 
 (def conf (qarth.util/read-resource "keys.edn"))
 
-(def service (oauth/build (assoc (:yahoo.com conf)
+(def service (oauth/build (assoc (:yahoo conf)
                                  :type :scribe
                                  :provider org.scribe.builder.api.YahooApi)))
 
@@ -19,12 +19,18 @@
         _ (flush)
         token (clojure.string/trim (read-line))
         rec (oauth/activate service rec token)
-        user-guid (-> ((oauth/requestor service rec)
-                         {:url "https://social.yahooapis.com/v1/me/guid"})
-                    :body clojure.data.xml/parse :content first :content first)
+        resp ((oauth/requestor service rec)
+                {:url "https://social.yahooapis.com/v1/me/guid"})
+        user-guid (-> resp :body clojure.data.xml/parse-str
+                    :content first :content first)
+        _ (println "response status:" (:status resp))
+        _ (println "response headers:" (pr-str (:headers resp)))
         _ (println "user-guid:" user-guid)
-        user-info (-> ((oauth/requestor service rec)
-                         {:url (str "https://social.yahooapis.com/v1/user/"
-                                    user-guid "/profile")})
-                    :body clojure.data.xml/parse :content)
+        resp ((oauth/requestor service rec)
+                {:url (str "https://social.yahooapis.com/v1/user/"
+                           user-guid "/profile")
+                          :as :stream})
+        user-info (-> resp :body clojure.data.xml/parse :content)
+        _ (println "response status:" (:status resp))
+        _ (println "response headers:" (pr-str (:headers resp)))
         _ (println "user info:" (pr-str user-info))]))

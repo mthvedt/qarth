@@ -113,6 +113,5 @@
            :body (case (and as (name as))
                    "stream" (.getStream resp)
                    (nil "string") (with-open [s (.getStream resp)] (slurp s)))
-           ; TODO test headers
            :headers (into {} (.getHeaders resp))})))
     assoc :type service-type))

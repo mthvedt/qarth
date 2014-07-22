@@ -1,18 +1,18 @@
 (ns qarth.impl.facebook
-  "A Facebook oauth impl. Type is facebook.com."
+  "A Facebook oauth impl. Type is :facebook."
   (require (qarth [oauth :as oauth])
            qarth.impl.oauth-v2
            cheshire.core))
 
-(oauth/derive :facebook.com :oauth)
+(oauth/derive :facebook :oauth)
 
-(defmethod oauth/build :facebook.com
+(defmethod oauth/build :facebook
   [service]
   (assoc service
          :request-url "https://www.facebook.com/dialog/oauth"
          :access-url "https://graph.facebook.com/oauth/access_token"))
 
-(defmethod oauth/id :facebook.com
+(defmethod oauth/id :facebook
   [requestor]
-  (-> (requestor {:url "https://graph.facebook.com/me"})
-    :body cheshire.core/parse-stream (get "id")))
+  (-> {:url "https://graph.facebook.com/me"}
+    requestor :body cheshire.core/parse-string (get "id")))
