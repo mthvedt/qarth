@@ -2,6 +2,9 @@
             :api-secret "your-api-secret"}
  :facebook {:api-key "your-api-key"
             :api-secret "your-api-secret"}
+ :twitter  {:api-key "your-api-key"
+            :api-secret "your-api-secret"
+            :callback "http://127.0.0.1:3000/auth"}
  :github   {:api-key "your-api-key"
             :api-secret "your-api-secret"}
  :google   {:api-key "your-api-key"

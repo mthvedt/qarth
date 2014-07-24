@@ -9,7 +9,7 @@
 (def conf (qarth.util/read-resource "keys.edn"))
 
 (def service (oauth/build (assoc (:yahoo conf)
-                                 :type :scribe
+                                 :type :scribe-v1
                                  :provider org.scribe.builder.api.YahooApi)))
 
 (defn -main [& args]

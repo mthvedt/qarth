@@ -5,12 +5,8 @@
            qarth.impl.scribe
            clojure.data.xml))
 
-(qarth.impl.scribe/extend-scribe :yahoo org.scribe.builder.api.YahooApi)
-
-(defmethod oauth/extract-code :yahoo
-  [service record request]
-  (lib/do-extract-code (-> record :state first)
-                       request :oauth_token :oauth_verifier :oauth_problem))
+(qarth.impl.scribe/extend-scribe :yahoo :scribe-v1
+                                 org.scribe.builder.api.YahooApi)
 
 (defmethod oauth/id :yahoo
   [requestor]

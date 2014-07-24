@@ -25,11 +25,15 @@
   (cemerick.friend/logout
     (GET "/login" [exception]
          (str "<html><head/><body>"
-              (if exception "Oops... there was a problem logging you in" "")
+              (if exception "<p>Oops... there was a problem logging you in</p>" "")
+              "<p>If you are using this locally, please note that some of these
+              services can only use localhost, and some can only use 127.0.0.1.<br/>
+              Mixing up the two might cause mysterious cookie bugs.</p>"
               "<p><a href=\"/auth?service=yahoo\">Login with Yahoo!</p>"
               "<p><a href=\"/auth?service=facebook\">Login with Facebook</p>"
               "<p><a href=\"/auth?service=github\">Login with Github</p>"
               "<p><a href=\"/auth?service=google\">Login with Google</p>"
+              "<p><a href=\"/auth?service=twitter\">Login with Twitter</p>"
               "</body></html>")))
   (GET "/" req
        (cemerick.friend/authorize

@@ -13,6 +13,7 @@
           [org.scribe.oauth OAuthService]))
 
 (qarth.oauth/derive :scribe :oauth)
+(qarth.oauth/derive :scribe-v1 :scribe)
 
 (defn scribe-verb-from-opts
   [opts]
@@ -23,8 +24,12 @@
   "Convert a token to a Scribe object.
   Tokens are stored as Clojure objects so that they are serializable
   and edn readable/writable."
-  [[key secret]]
-  (Token. key secret))
+  [[token secret]]
+  (Token. token secret))
+
+(defn get-state
+  "Get the state component of a Clojure Scribe token."
+  [[token _]] token)
 
 (defn unscribe-token
   [^Token scribe-token]
@@ -54,15 +59,16 @@
 (defmacro extend-scribe
   "Derives an extension of the Scribe implementation,
   that builds a Scribe service with the provided type and api."
-  [type api]
-  `(do
-     (qarth.oauth/derive ~type :scribe)
-     (defmethod oauth/build ~type
-       [spec#]
-       (-> spec#
-         (assoc :type :scribe :provider ~api)
-         oauth/build
-         (assoc :type ~type)))))
+  ([type api] `(extend-scribe ~type :scribe ~api))
+  ([type supertype api]
+   `(do
+      (qarth.oauth/derive ~type ~supertype)
+      (defmethod oauth/build ~type
+        [spec#]
+        (-> spec#
+          (assoc :type :scribe :provider ~api)
+          oauth/build
+          (assoc :type ~type))))))
 
 (defmethod oauth/new-record :scribe
   [{service-type :type ^OAuthService oauth-service :service
@@ -115,3 +121,9 @@
                    (nil "string") (with-open [s (.getStream resp)] (slurp s)))
            :headers (into {} (.getHeaders resp))})))
     assoc :type service-type))
+
+; For scribe impls using oauth-v1
+(defmethod oauth/extract-code :scribe-v1
+  [service record request]
+  (lib/do-extract-code (-> record :state qarth.impl.scribe/get-state)
+                       request :oauth_token :oauth_verifier :oauth_problem))

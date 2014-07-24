@@ -14,18 +14,17 @@
   If a :service query param is present, constructs an auth record from
   a multiservice with the specified key."
   ([service]
-   ; TODO when the callback hits here with no service,
-   ; causes an error
    (fn [{session :session params :query-params}]
-     (log/trace "New record redirect handler")
+     (log/trace "Reached new record redirect handler")
      (let [record (if-let [key (clojure.core/get params "service")]
                     (oauth/new-record service (keyword key))
                     (if (= (:type service) :multi)
                       (throw (IllegalArgumentException.
-                               "Multi-services require a serivce parameter"))
+                               (str "Multi-services require an auth record or "
+                                    "serivce parameter")))
                       (oauth/new-record service)))
            session (assoc session ::oauth/record record)]
-       (log/debug "Installing in session new oauth record and redirecting"
+       (log/debug "Redirecting and installing new oauth record"
                   (pr-str record))
        (assoc (ring.util.response/redirect (:url record))
               :session session))))
@@ -77,10 +76,11 @@
   for example from an OAuth callback,
   and attempts to verify the current auth record.
   If success, continues to call (success-handler request).
+  If no auth code was found, continues to (fallback-handler request).
   If failure, calls (exception-handler request exception)."
   [service success-handler fallback-handler exception-handler]
   (fn [req]
-    (log/trace "Auth callback handler")
+    (log/trace "Reached auth callback handler")
     (try
       (if-let [resp (activate-request service req)]
         (success-handler resp)
@@ -93,6 +93,8 @@
             core/unauthorized)))
       (catch Exception e
         (log/debug "Auth callback handler caught exception" (.getMessage e))
+        (log/debug "Params were" (-> req :params pr-str))
+        (log/trace "Request was" (pr-str req))
         (exception-handler req e)))))
 
 (defn omni-handler
@@ -128,16 +130,18 @@
         fallback (or fallback (nil? fallback))
         exception-handler (or exception-handler
                               (fn [req e]
-                                (log/trace "Default exception handler")
+                                (log/trace "Reached default exception handler;"
+                                           "exception forthcoming")
                                 (log/info e "Exception trying to verify record")
                                 (failure-handler (set req nil))))
         callback-handler (auth-callback-handler service success-handler
                                                 (if fallback new-record-handler)
                                                 exception-handler)]
     (fn [req]
-      (log/trace "Ring omni-handler")
-      (log/trace "Session" (:session req))
-      (log/trace "Params" (:params req))
+      (log/trace "Reached Ring omni-handler")
+      (log/trace "with session" (pr-str (:session req)))
+      (log/trace "with cookies" (pr-str (:cookies req)))
+      (log/trace "with params" (pr-str (:params req)))
       (if-let [record (get req)]
         (if (oauth/active? service record)
           (success-handler req)

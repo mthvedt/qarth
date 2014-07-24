@@ -90,7 +90,7 @@
               req (if key
                     (assoc-in req [:query-params "service"] key)
                     req)]
-          (log/debug "Reached Friend OAuth workflow at url " (:url req))
+          (log/debug "Reached Friend OAuth workflow at uri" (:uri req))
           (let [resp
                 ((qarth-ring/omni-handler {:service service
                                            :success-handler success-handler

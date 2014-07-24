@@ -1,8 +1,12 @@
 (defproject qarth "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+  :description "OAuth for serious people"
+  :url "https://github.com/mthvedt/qarth"
   :license {:name "Eclipse Public License"
-            :url "http://www.eclipse.org/legal/epl-v10.html"}
+            :url "http://www.eclipse.org/legal/epl-v10.html"
+            :distribution :repo
+            :comments "same as Clojure"}
+  :scm {:name "git"
+        :url "https://github.com/mthvedt/qarth"}
   :profiles {:example {:resource-paths ["test-resources"]
                        :source-paths ["test"]
                        :plugins [[lein-ring "0.8.10"]]}
