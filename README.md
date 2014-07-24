@@ -132,6 +132,11 @@ Qarth's basic facade authenticates users in two multimethod calls.
 (println "Your unique user ID is " (->> record (oauth/requestor service) oauth/id))
 ```
 
+### Interop
+
+For OAuth v2 services, you can grab the `:access-token` from the OAuth record
+and use that with third-party libraries such as [clj-facebook-graph](https://github.com/maxweber/clj-facebook-graph).
+
 ## Extending Qarth
 
 ### Roll your own OAuth v2 implementation
