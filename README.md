@@ -132,10 +132,6 @@ Qarth's basic facade authenticates users in two multimethod calls.
 (println "Your unique user ID is " (->> record (oauth/requestor service) oauth/id))
 ```
 
-### Examples
-
-Examples live in [test/qarth/examples](https://github.com/mthvedt/qarth/tree/master/test/qarth/examples). You can run any example file with `lein example <example-class>`. To run them you need to put a `keys.edn` file in [test-resources](https://github.com/mthvedt/qarth/tree/master/test-resources) (see [https://github.com/mthvedt/qarth/blob/master/test-resources/keys-example.edn](this example file)).
-
 ## Extending Qarth
 
 ### Roll your own OAuth v2 implementation
@@ -204,9 +200,15 @@ providers in a polymorphic way.
 
 [Examples](https://github.com/mthvedt/qarth/tree/master/test/qarth/examples)
 
-[API docs](http://mthvedt.github.io/qarth/doc/codox).
+[API docs](http://mthvedt.github.io/qarth/doc/codox)
 
 [Implementations](https://github.com/mthvedt/qarth/tree/master/src/qarth/impl)
+
+### Working examples
+
+Examples live in [test/qarth/examples](https://github.com/mthvedt/qarth/tree/master/test/qarth/examples). The examples look for a `keys.edn` file in [test-resources](https://github.com/mthvedt/qarth/tree/master/test-resources) (see [https://github.com/mthvedt/qarth/blob/master/test-resources/keys-example.edn](this example file)).
+
+You can run any example file by cloning this repo and then running `lein example qarth.examples.<example-file.clj>` or `lein exdebug qarth.examples.<example-file.clj>`, provided you put the proper OAuth keys in `test-resources/keys.edn`. Only the lein `example` profile knows about this directory. Qarth itself makes no assumptions about how you supply OAuth keys.
 
 ## Logging
 
@@ -219,18 +221,17 @@ log auth services or any private information contained therein.
 
 ## TODO
 
-* Record refresh and expiration. Currently you must do this manually.
-* General 'strategies' to allow login without Friend...
+* Auth record refresh and expiration. Currently you must handle these cases yourself.
 * Multimethods for email, userinfo, &c.
-* More documentation!
+* OAuth 'strategies' like Ruby OmniAuth, so Friend is no longer required. The infrastructure is already there in `ring.clj`.
 
 ## Finally…
 
 Qarth is a new library, so please let me know about any bugs, difficulties, or rough edges you encounter. My Freenode IRC name is mthvedt and my email is mike.thvedt@gmail.com.
 
-## License
+Special thanks go to John Schroeder and Anders Hovmöller.
 
-Thanks to John Schroeder and Anders Hovmöller for valuable help and feedback.
+## License
 
 Copyright © 2014 [Zimilate, Inc.](http://zimilate.com), Mike Thvedt
 
