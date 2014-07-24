@@ -22,6 +22,7 @@ from a configuration file. They are generally not readable or writable.
 (require 'qarth.impl.facebook) ; Loads the methods for :facebook
 (def conf {:type :facebook
            :callback "http://localhost:3000/login"
+           :scope "public_profile,email" ; Scopes are optional
            :api-key "my-key"
            :api-secret "my-secret"})
 (def service (oauth/build conf))

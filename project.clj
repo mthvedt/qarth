@@ -20,6 +20,7 @@
              :debug {:dependencies [[log4j/log4j "1.2.17"]]}}
   :aliases {"example" ["trampoline" "with-profile" "example" "run" "-m"]
             "exdebug" ["trampoline" "with-profile" "example,debug" "run" "-m"]}
+  :deploy-repositories [["clojars" {:creds :gpg}]]
   :dependencies [[org.clojure/clojure "1.5.1"]
 
                  [org.clojure/data.codec "0.1.0"]
@@ -30,7 +31,7 @@
                  [org.clojure/data.xml "0.0.7"]
                  
                  [ring/ring-core "1.2.2"]
-                 [org.scribe/scribe "1.3.6"]
+                 [org.scribe/scribe "1.3.5"]
                  [com.cemerick/friend "0.2.0"]
 
                  [ring/ring-jetty-adapter "1.2.2" :scope "test"]
