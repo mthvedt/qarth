@@ -17,7 +17,7 @@
    (fn [{session :session params :query-params}]
      (log/trace "Reached new record redirect handler")
      (let [record (if-let [key (clojure.core/get params "service")]
-                    (oauth/new-record service (keyword key))
+                    ; (oauth/new-record service (keyword key))
                     (if (= (:type service) :multi)
                       (throw (IllegalArgumentException.
                                (str "Multi-services require an auth record or "
