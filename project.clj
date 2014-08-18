@@ -1,4 +1,4 @@
-(defproject qarth "0.1.0"
+(defproject qarth "0.1.1-SNAPSHOT"
   :description "OAuth for serious people"
   :url "https://github.com/mthvedt/qarth"
   :license {:name "Eclipse Public License"
