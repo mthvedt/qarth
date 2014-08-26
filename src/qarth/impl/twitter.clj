@@ -6,7 +6,7 @@
            cheshire.core))
 
 (qarth.impl.scribe/extend-scribe :twitter :scribe-v1
-                                 org.scribe.builder.api.TwitterApi)
+                                 org.scribe.builder.api.TwitterApi$SSL)
 (qarth.impl.scribe/extend-scribe :twitter-login :twitter
                                  org.scribe.builder.api.TwitterApi$Authenticate)
 
