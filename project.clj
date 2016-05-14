@@ -26,7 +26,7 @@
                  [org.clojure/data.codec "0.1.0"]
                  [crypto-random "1.2.0"]
                  [org.clojure/tools.logging "0.2.6"]
-                 [clj-http "0.9.2"]
+                 [clj-http "2.1.0"]
                  [cheshire "5.3.1"]
                  [org.clojure/data.xml "0.0.7"]
                  
