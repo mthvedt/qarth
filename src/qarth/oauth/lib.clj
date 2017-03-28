@@ -108,7 +108,7 @@
   "Parser for use with do-request-access. Reads a JSON-encoded response stream."
   [response-stream]
   (let [resp (cheshire.core/parse-stream (io/reader response-stream))
-        {:keys [access_token token_type expires expires_in]} resp]
+        {:strs [access_token token_type expires expires_in]} resp]
     (log/trace "Parsed JSON response" (pr-str resp))
     (remove-nils
       {:access-token access_token
