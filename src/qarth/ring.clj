@@ -5,7 +5,7 @@
   (require (qarth [oauth :as oauth] [core :as core])
            ring.util.response
            [clojure.tools.logging :as log])
-  (:refer-clojure :exclude [get set]))
+  (:refer-clojure :exclude [get set update]))
 
 (defn new-record-redirect-handler
   "Returns a Ring handler that creates a new auth record
