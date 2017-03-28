@@ -3,19 +3,25 @@
 [![Clojars Project](http://clojars.org/qarth/latest-version.svg)](http://clojars.org/qarth)
 
 Qarth is a simple interface to OAuth.
-Qarth features zero-effort Friend integration.
-The interactive auth flow in "friendless" qarth is two or three lines of code plus configuration.
+
+Qarth can be used with Friend or stand-alone. Friend integration is zero-effort.
+Standalone mode only takes a few lines of code and configuration.
 
 Qarth comes with out-of-the-box support for Facebook, Github, Twitter, Google, and Yahoo!,
 and generic support for OAuth v2 and [Scribe](https://github.com/fernandezpablo85/scribe-java).
 
 ## Using Qarth
 
+This tutorial presupposes a basic familiarity with OAuth.
+
+Qarth encapsulates its functionality in three kinds of objects: services, requestors, and maps.
+You can manipulate these yourselves, or plug them into Friend.
+
 ### A basic configuration
 
-Qarth puts all your super-secret information, like API keys and passwords,
-in auth services. They are configured with ordinary maps such as might come
-from a configuration file. They are generally not readable or writable.
+Qarth is configured using Clojure maps and runs with multimethods.
+Qarth auth services are encapsulated in opaque objects called 'services',
+which are built from configurations as follows:
 
 ```clojure
 (require '[qarth.oauth :as oauth])
@@ -35,7 +41,7 @@ Auth records are ordinary Clojure maps
 and can be stored in cookies, sessions, databases, Friend credentials, &c.
 
 ```clojure
-; All you need to create a Qarth workflow is a configured auth service.
+; Create a Friend workflow from a Qarth service.
 (def workflow (qarth.friend/oauth-workflow {:service service}))
 
 (defroutes app
@@ -52,7 +58,12 @@ and can be stored in cookies, sessions, databases, Friend credentials, &c.
     compojure.handler/site))
 ```
 
-You can make requests with the OAuth information stored in the Friend credentials.
+Friend then stores the OAuth information in its Friend credentials, which can be
+used to make OAuth-authenticated requests. This is done with Qarth objects called
+requestors.
+
+Requestors are multimethod objects used to make various kinds of requests.
+Qarth provides several multimethods you can use. For example:
 
 ```clojure
 (defroutes app
@@ -60,18 +71,44 @@ You can make requests with the OAuth information stored in the Friend credential
        (cemerick.friend/authorize
          #{::user}
          ; A requestor uses verified OAuth credentials to make http requests.
-         ; qarth.friend/requestor can get a requestor from the Friend credentials.
-         ; oauth/id is a method on requestors.
+         ; qarth.friend/requestor obtains get a requestor from the Friend credentials.
+         ; We then call oauth/id on that requestor, which gets the user's unique ID.
          (let [id (-> req (qarth.friend/requestor service) oauth/id)]
            (str "<html><body>Hello friend! Your unique user ID is "
                 id
                 "</body></html>")))))
 ```
 
+### A command-line app
+
+Qarth's basic facade authenticates users in two multimethod calls.
+We call `oauth/new-record` to crate a Qarth record--actually just a map--
+for that service. The `:url` for that service gives an authorization URL.
+
+Here's how it works on the command line:
+
+```clojure
+; Assume 'service is an OAuth service with no callback
+(def record (oauth/new-record service))
+(println ("Auth url: " (:url record)))
+; Compliant OAuth implementations will show the user an authorization token
+; after they authorize with the given URL.
+(print "Enter token: ") (flush)
+(def record (oauth/activate service record (clojure.string/trim (read-line))))
+(println "Your unique user ID is " (->> record (oauth/requestor service) oauth/id))
+```
+
+In practice, of course, you would want to plug this workflow into your webapp somehow.
+If you're using Friend, that makes things much easier.
+
+### Interop
+
+For OAuth v2 services, you can grab the `:access-token` from the OAuth record
+and use that with third-party libraries such as [clj-facebook-graph](https://github.com/maxweber/clj-facebook-graph).
+
 ### Make arbitrary requests
 
-A requestor, in addition to being an object with multimethods,
-is a vanilla fn that can be used to make arbitrary HTTP requests.
+Requestors, when used as fns, can make arbitrary requests.
 
 ```clojure
 (def my-requestor (oauth/requestor service record))
@@ -80,18 +117,19 @@ is a vanilla fn that can be used to make arbitrary HTTP requests.
 (println "Your user GUID is " user-guid)
 ```
 
-Obviously these are provider-specific, so the use of multimethods is encouraged
-if you want to use multiple providers (see below).
-
 Requestors support many (or all! depending on implementation)
 of the options that :clj-http supports. They return Ring-style response maps.
-(As is usual in Java, remember to always close your streams at the end.)
+The user is responsbile for closing any streams in the returned Ring-style map.
+
+Because OAuth methods differ from provider to provider, we encourage using multimethods
+instead of arbitrary requests. That way, you can easily change behavior between providers.
 
 ### Using multiple services
 
 Qarth has multiservices, which have type `:multi`.
-To use multiservices requires a one-line change
-to `oauth/new-record`—all other methods work the same.
+When using multiservices, when creating a new Qarth record,
+you must provide the service name. If using friend, you must provide a GET parameter
+named 'service'. For example:
 
 ```clojure
 (require 'qarth.impls) ; Loads all methods bundled with Qarth
@@ -116,26 +154,6 @@ to `oauth/new-record`—all other methods work the same.
           "<p><a href=\"/auth?service=github\">Login with Github</p>"
           "</body></html>"))
 ```
-
-### A command-line app
-
-Qarth's basic facade authenticates users in two multimethod calls.
-
-```clojure
-; Assume 'service is an OAuth service with no callback
-(def record (oauth/new-record service))
-(println ("Auth url: " (:url record)))
-; Compliant OAuth implementations will show the user an authorization code.
-; Not every OAuth provider supports this.
-(print "Enter token: ") (flush)
-(def record (oauth/activate service record (clojure.string/trim (read-line))))
-(println "Your unique user ID is " (->> record (oauth/requestor service) oauth/id))
-```
-
-### Interop
-
-For OAuth v2 services, you can grab the `:access-token` from the OAuth record
-and use that with third-party libraries such as [clj-facebook-graph](https://github.com/maxweber/clj-facebook-graph).
 
 ## Extending Qarth
 
@@ -187,7 +205,7 @@ For a working example, see the [Yahoo! implementation](https://github.com/mthved
 
 ### Roll your own multimethods
 
-Qarth multimethods dispatch on `qarth.support/h`. Requestors
+Qarth multimethods dispatch on the hierarchy `qarth.support/h`. Requestors
 already have `:type` metadata on them.
 So you can roll your own multimethods as follows:
 
@@ -228,7 +246,7 @@ log auth services or any private information contained therein.
 
 * Auth record refresh and expiration. Currently you must handle these cases yourself.
 * Multimethods for email, userinfo, &c.
-* OAuth 'strategies' like Ruby OmniAuth, so Friend is no longer required. The infrastructure is already there in `ring.clj`.
+* OAuth 'strategies' in the style of Ruby OmniAuth, so that we can implement easy workflows other than with Friend. The infrastructure is already there in `ring.clj`.
 
 ## Finally…
 
@@ -238,6 +256,6 @@ Special thanks go to John Schroeder and Anders Hovmöller.
 
 ## License
 
-Copyright © 2014 [Zimilate, Inc.](http://zimilate.com), Mike Thvedt
+Copyright © 2014-2017 [Zimilate, Inc.](http://zimilate.com), Mike Thvedt
 
 Distributed under the Eclipse Public License, the same as Clojure.
