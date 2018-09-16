@@ -1,5 +1,14 @@
 # Qarth
 
+## Qarth is no longer maintained by the author.
+
+Qarth does not build in Clojure 1.9 and, so far, only one person has complained.
+Due to the low number of active users and treadmill of keeping up with the latest breaking changes
+in Clojure, OAuth implementations, and libraries, I no longer maintain Qarth.
+This repo is left here for posterity, and feel free to fork it.
+
+Legacy README follows.
+
 [![Clojars Project](http://clojars.org/qarth/latest-version.svg)](http://clojars.org/qarth)
 
 Qarth is a simple interface to OAuth.
